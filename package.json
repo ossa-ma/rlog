@@ -1,0 +1,70 @@
+{
+    "$schema": "https://www.raycast.com/schemas/extension.json",
+    "name": "rlog",
+    "title": "RLog",
+    "description": "A frictionless reading log manager for static blogs.",
+    "icon": "command-icon.png",
+    "author": "ossama",
+    "categories": [
+        "Productivity",
+        "Developer Tools"
+    ],
+    "license": "MIT",
+    "commands": [
+        {
+            "name": "add-reading",
+            "title": "Log Read",
+            "subtitle": "RLog",
+            "description": "Add a new article to your reading list",
+            "mode": "view"
+        },
+        {
+            "name": "setup-blog",
+            "title": "Setup Blog",
+            "subtitle": "RLog",
+            "description": "Inject reading list code into your blog",
+            "mode": "view"
+        }
+    ],
+    "dependencies": {
+        "@raycast/api": "^1.79.0",
+        "@raycast/utils": "^1.16.0",
+        "cheerio": "^1.0.0-rc.12",
+        "date-fns": "^3.6.0",
+        "node-fetch": "^3.3.2",
+        "simple-git": "^3.24.0"
+    },
+    "devDependencies": {
+        "@raycast/eslint-config": "^1.0.8",
+        "@types/node": "^20.8.10",
+        "@types/react": "^18.2.0",
+        "eslint": "^8.57.0",
+        "prettier": "^3.2.5",
+        "typescript": "^5.4.5"
+    },
+    "scripts": {
+        "build": "ray build -e dist",
+        "dev": "ray develop",
+        "fix-lint": "ray lint --fix",
+        "lint": "ray lint",
+        "publish": "npx @raycast/api@latest publish"
+    },
+    "preferences": [
+        {
+            "name": "blogPath",
+            "type": "directory",
+            "required": true,
+            "title": "Blog Repository Path",
+            "description": "Absolute path to your static blog repository."
+        },
+        {
+            "name": "dataPath",
+            "type": "textfield",
+            "required": false,
+            "title": "Data File Path",
+            "description": "Relative path to your reading.json file (default: data/reading.json).",
+            "default": "data/reading.json",
+            "placeholder": "data/reading.json"
+        }
+    ]
+}
