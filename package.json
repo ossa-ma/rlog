@@ -24,6 +24,13 @@
             "subtitle": "RLog",
             "description": "Inject reading list code into your blog",
             "mode": "view"
+        },
+        {
+            "name": "read-later",
+            "title": "Read Later",
+            "subtitle": "RLog",
+            "description": "Save current tab to reading list",
+            "mode": "no-view"
         }
     ],
     "dependencies": {

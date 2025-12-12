@@ -22,6 +22,8 @@ declare namespace Preferences {
   export type AddReading = ExtensionPreferences & {}
   /** Preferences accessible in the `setup-blog` command */
   export type SetupBlog = ExtensionPreferences & {}
+  /** Preferences accessible in the `read-later` command */
+  export type ReadLater = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -29,5 +31,7 @@ declare namespace Arguments {
   export type AddReading = {}
   /** Arguments passed to the `setup-blog` command */
   export type SetupBlog = {}
+  /** Arguments passed to the `read-later` command */
+  export type ReadLater = {}
 }
 
