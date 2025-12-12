@@ -8,13 +8,12 @@ import {
     Toast,
     Clipboard,
 } from "@raycast/api";
-import { useForm } from "@raycast/utils";
+import { useForm, runAppleScript } from "@raycast/utils";
 import fs from "fs";
 import path from "path";
 import * as cheerio from "cheerio";
 import fetch from "node-fetch";
 import simpleGit from "simple-git";
-import { runAppleScript } from "@raycast/utils";
 
 interface Preferences {
     blogPath: string;
@@ -159,37 +158,53 @@ export default function Command() {
     useEffect(() => {
         async function fetchUrl() {
             console.log("Starting fetchUrl...");
-            try {
-                // Try to get URL from the frontmost browser (Chrome, Safari, Arc, Brave, Edge)
-                const browserUrl = await runAppleScript(`
-          tell application "System Events"
-            set frontApp to name of first application process whose frontmost is true
-          end tell
-          
-          if frontApp is "Google Chrome" or frontApp is "Google Chrome Canary" or frontApp is "Chromium" or frontApp is "Brave Browser" or frontApp is "Microsoft Edge" or frontApp is "Arc" then
-            tell application frontApp
-              return URL of active tab of front window
-            end tell
-          else if frontApp is "Safari" or frontApp is "Safari Technology Preview" then
-            tell application frontApp
-              return URL of front document
-            end tell
-          else
-            return ""
-          end if
-        `);
-                console.log("AppleScript result:", browserUrl);
 
-                if (
-                    browserUrl &&
-                    (browserUrl.startsWith("http") || browserUrl.startsWith("https"))
-                ) {
+            // Try to get URL from active browser (Chrome, Safari, Firefox)
+            try {
+                let browserUrl = "";
+
+                // Try Chrome first (using JXA for multi-profile support)
+                try {
+                    browserUrl = await runAppleScript(
+                        'Application("Google Chrome").windows[0].activeTab.url()',
+                        { language: "JavaScript" }
+                    );
+                    console.log("Chrome URL:", browserUrl);
+                } catch (chromeError) {
+                    console.log("Chrome not available or no windows");
+                }
+
+                // Try Safari if Chrome didn't work
+                if (!browserUrl) {
+                    try {
+                        browserUrl = await runAppleScript(
+                            'tell application "Safari" to return URL of current tab of front window'
+                        );
+                        console.log("Safari URL:", browserUrl);
+                    } catch (safariError) {
+                        console.log("Safari not available or no windows");
+                    }
+                }
+
+                // Try Firefox if neither Chrome nor Safari worked
+                if (!browserUrl) {
+                    try {
+                        browserUrl = await runAppleScript(
+                            'tell application "Firefox" to return URL of active tab of front window'
+                        );
+                        console.log("Firefox URL:", browserUrl);
+                    } catch (firefoxError) {
+                        console.log("Firefox not available or no windows");
+                    }
+                }
+
+                if (browserUrl && browserUrl.startsWith("http")) {
                     console.log("Setting URL from browser:", browserUrl);
                     setValue("url", browserUrl);
                     return;
                 }
             } catch (e) {
-                console.error("AppleScript error:", e);
+                console.error("Browser detection error:", e);
             }
 
             // Fallback to Clipboard
