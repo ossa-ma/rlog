@@ -159,43 +159,47 @@ export default function Command() {
         async function fetchUrl() {
             console.log("Starting fetchUrl...");
 
-            // Try to get URL from active browser (Chrome, Safari, Firefox)
+            // Try to get URL from the frontmost browser
             try {
+                // First, detect which browser is currently active
+                const frontmostApp = await runAppleScript(
+                    'tell application "System Events" to get name of first application process whose frontmost is true'
+                );
+                console.log("Frontmost app:", frontmostApp);
+
                 let browserUrl = "";
 
-                // Try Chrome first (using JXA for multi-profile support)
-                try {
-                    browserUrl = await runAppleScript(
-                        'Application("Google Chrome").windows[0].activeTab.url()',
-                        { language: "JavaScript" }
-                    );
-                    console.log("Chrome URL:", browserUrl);
-                } catch (chromeError) {
-                    console.log("Chrome not available or no windows");
-                }
-
-                // Try Safari if Chrome didn't work
-                if (!browserUrl) {
+                // Only query the active browser
+                if (frontmostApp === "Google Chrome") {
+                    try {
+                        browserUrl = await runAppleScript(
+                            'Application("Google Chrome").windows[0].activeTab.url()',
+                            { language: "JavaScript" }
+                        );
+                        console.log("Chrome URL:", browserUrl);
+                    } catch (e) {
+                        console.log("Chrome error:", e);
+                    }
+                } else if (frontmostApp === "Safari") {
                     try {
                         browserUrl = await runAppleScript(
                             'tell application "Safari" to return URL of current tab of front window'
                         );
                         console.log("Safari URL:", browserUrl);
-                    } catch (safariError) {
-                        console.log("Safari not available or no windows");
+                    } catch (e) {
+                        console.log("Safari error:", e);
                     }
-                }
-
-                // Try Firefox if neither Chrome nor Safari worked
-                if (!browserUrl) {
+                } else if (frontmostApp === "Firefox") {
                     try {
                         browserUrl = await runAppleScript(
                             'tell application "Firefox" to return URL of active tab of front window'
                         );
                         console.log("Firefox URL:", browserUrl);
-                    } catch (firefoxError) {
-                        console.log("Firefox not available or no windows");
+                    } catch (e) {
+                        console.log("Firefox error:", e);
                     }
+                } else {
+                    console.log("Frontmost app is not a supported browser:", frontmostApp);
                 }
 
                 if (browserUrl && browserUrl.startsWith("http")) {
