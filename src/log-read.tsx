@@ -10,10 +10,9 @@ import {
 import { useForm } from "@raycast/utils";
 import fs from "fs";
 import path from "path";
-import * as cheerio from "cheerio";
-import fetch from "node-fetch";
 import simpleGit from "simple-git";
 import { getActiveUrl } from "./utils/browser";
+import { fetchMetadata } from "./utils/metadata";
 
 interface Preferences {
   blogPath: string;
@@ -29,6 +28,7 @@ interface ReadingEntry {
   thoughts?: string;
 }
 
+// Could display Title and Author fields for user to manually verify and edit
 interface FormValues {
   url: string;
   thoughts: string;
@@ -56,28 +56,9 @@ export default function Command() {
 
       try {
         // 1. Fetch Metadata
-        const response = await fetch(values.url);
-        const html = await response.text();
-        const $ = cheerio.load(html);
-
-        const title =
-          $('meta[property="og:title"]').attr("content") ||
-          $('meta[name="twitter:title"]').attr("content") ||
-          $("title").text() ||
-          "Untitled";
-
-        const author =
-          $('meta[name="author"]').attr("content") ||
-          $('meta[property="article:author"]').attr("content") ||
-          $('meta[property="og:author"]').attr("content") ||
-          null;
-
-        const publishedDate =
-          $('meta[property="article:published_time"]').attr("content") ||
-          $('meta[name="date"]').attr("content") ||
-          $('meta[property="og:published_time"]').attr("content") ||
-          $("time[datetime]").attr("datetime") ||
-          null;
+        const { title, author, publishedDate } = await fetchMetadata(
+          values.url,
+        );
 
         // 2. Prepare Entry
         const entry: ReadingEntry = {
