@@ -84,17 +84,17 @@ export async function getOpenTabs(): Promise<string[]> {
       // JXA for Chrome
       const urls = await runAppleScript(
         `
-const app = Application("Google Chrome");
-const tabs = app.windows[0].tabs();
-const urls = [];
-for (let i = 0; i < tabs.length; i++) {
-  urls.push(tabs[i].url());
-}
-urls;
-`,
+        const app = Application("Google Chrome");
+        const tabs = app.windows[0].tabs();
+        const urls = [];
+        for (let i = 0; i < tabs.length; i++) {
+          urls.push(tabs[i].url());
+        }
+        JSON.stringify(urls);
+        `,
         { language: "JavaScript" },
       );
-      return urls as unknown as string[];
+      return JSON.parse(urls);
     } else if (frontmostApp === "Safari") {
       // AppleScript for Safari
       const urls = await runAppleScript(

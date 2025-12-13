@@ -37,7 +37,7 @@
             "title": "Log Window",
             "subtitle": "rlog",
             "description": "Log all open tabs in the active window",
-            "mode": "view"
+            "mode": "no-view"
         },
         {
             "name": "read-window-later",
