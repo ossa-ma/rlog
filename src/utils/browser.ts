@@ -1,5 +1,6 @@
 import { runAppleScript } from "@raycast/utils";
 import { Clipboard } from "@raycast/api";
+import { getFirefoxTabs } from "./firefox";
 
 export async function getActiveUrl(): Promise<string | null> {
   console.log("Starting getActiveUrl...");
@@ -71,4 +72,47 @@ export async function getActiveUrl(): Promise<string | null> {
   }
 
   return null;
+}
+
+export async function getOpenTabs(): Promise<string[]> {
+  try {
+    const frontmostApp = await runAppleScript(
+      'tell application "System Events" to get name of first application process whose frontmost is true',
+    );
+
+    if (frontmostApp === "Google Chrome") {
+      // JXA for Chrome
+      const urls = await runAppleScript(
+        `
+const app = Application("Google Chrome");
+const tabs = app.windows[0].tabs();
+const urls = [];
+for (let i = 0; i < tabs.length; i++) {
+  urls.push(tabs[i].url());
+}
+urls;
+`,
+        { language: "JavaScript" },
+      );
+      return urls as unknown as string[];
+    } else if (frontmostApp === "Safari") {
+      // AppleScript for Safari
+      const urls = await runAppleScript(
+        'tell application "Safari" to return URL of every tab of front window',
+      );
+      // Safari returns comma-separated string or array depending on context.
+      // Raycast's runAppleScript returns string.
+      // If it's a list, it might be "url1, url2".
+      // Let's try to parse it.
+      return urls
+        .split(",")
+        .map((u) => u.trim())
+        .filter((u) => u.length > 0);
+    } else if (frontmostApp === "Firefox") {
+      return getFirefoxTabs();
+    }
+  } catch (e) {
+    console.error("Error fetching tabs:", e);
+  }
+  return [];
 }

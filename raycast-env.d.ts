@@ -24,6 +24,10 @@ declare namespace Preferences {
   export type SetupBlog = ExtensionPreferences & {}
   /** Preferences accessible in the `read-later` command */
   export type ReadLater = ExtensionPreferences & {}
+  /** Preferences accessible in the `log-window` command */
+  export type LogWindow = ExtensionPreferences & {}
+  /** Preferences accessible in the `read-window-later` command */
+  export type ReadWindowLater = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -33,5 +37,9 @@ declare namespace Arguments {
   export type SetupBlog = {}
   /** Arguments passed to the `read-later` command */
   export type ReadLater = {}
+  /** Arguments passed to the `log-window` command */
+  export type LogWindow = {}
+  /** Arguments passed to the `read-window-later` command */
+  export type ReadWindowLater = {}
 }
 

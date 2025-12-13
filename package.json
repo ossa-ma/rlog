@@ -20,7 +20,7 @@
         },
         {
             "name": "setup-blog",
-            "title": "Setup Blog",
+            "title": "Setup rlog",
             "subtitle": "rlog",
             "description": "Inject read and reading list code into your blog",
             "mode": "view"
@@ -30,6 +30,20 @@
             "title": "Read Later",
             "subtitle": "rlog",
             "description": "Save current tab to reading list",
+            "mode": "no-view"
+        },
+        {
+            "name": "log-window",
+            "title": "Log Window",
+            "subtitle": "rlog",
+            "description": "Log all open tabs in the active window",
+            "mode": "view"
+        },
+        {
+            "name": "read-window-later",
+            "title": "Read Window Later",
+            "subtitle": "rlog",
+            "description": "Save all open tabs in the active window to read later",
             "mode": "no-view"
         }
     ],
@@ -41,12 +55,16 @@
         "@raycast/utils": "^1.16.0",
         "cheerio": "^1.0.0-rc.12",
         "date-fns": "^3.6.0",
+        "ini": "^6.0.0",
+        "lz4js": "^0.2.0",
         "node-fetch": "^3.3.2",
         "simple-git": "^3.24.0"
     },
     "devDependencies": {
         "@raycast/eslint-config": "^1.0.8",
+        "@types/ini": "^4.1.1",
         "@types/jest": "^30.0.0",
+        "@types/lz4js": "^0.2.2",
         "@types/node": "^20.8.10",
         "@types/react": "^18.3.27",
         "eslint": "^8.57.0",
