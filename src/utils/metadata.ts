@@ -99,10 +99,13 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
       // Otherwise, prefer h1 or h2 if they look like titles.
       if (ogTitle && ogTitle !== pageTitle) {
         title = ogTitle;
-      } else if (h1) {
+      } else if (h1 && h1 !== pageTitle && h1 !== ogTitle) {
         title = h1;
       } else if (h2) {
+        // Specific fix for nabeelqu.co where title is in h2
         title = h2;
+      } else if (h1) {
+        title = h1;
       } else if (pageTitle) {
         title = pageTitle;
       } else {
@@ -158,7 +161,7 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
         /Published:\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})/,
       );
       if (publishedMatch) {
-        publishedDate = publishedMatch[1];
+        publishedDate = publishedMatch[1] + " UTC";
       }
     }
 

@@ -167,7 +167,14 @@ export default function Command() {
         placeholder="Optional thoughts..."
         {...itemProps.thoughts}
       />
+      {/* Can't default to past dates e.g. last week, last month, user must do this manually */}
       <Form.DatePicker title="Date Added" {...itemProps.date} />
+      {/* <Form.DatePicker
+        title="Date Added"
+        type={Form.DatePicker.Type.Date}
+        max={new Date()}
+        {...itemProps.date}
+      /> */}
       <Form.Checkbox label="Push to Git" {...itemProps.pushToGit} />
     </Form>
   );
