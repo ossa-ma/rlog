@@ -1,7 +1,7 @@
 {
     "$schema": "https://www.raycast.com/schemas/extension.json",
     "name": "rlog",
-    "title": "RLog",
+    "title": "rlog",
     "description": "A frictionless reading log manager for static blogs.",
     "icon": "command-icon.png",
     "author": "ossa-ma",
@@ -14,21 +14,21 @@
         {
             "name": "log-read",
             "title": "Log Read",
-            "subtitle": "RLog",
+            "subtitle": "rlog",
             "description": "Add a new article/post/blog/page to your read list",
             "mode": "view"
         },
         {
             "name": "setup-blog",
             "title": "Setup Blog",
-            "subtitle": "RLog",
+            "subtitle": "rlog",
             "description": "Inject read and reading list code into your blog",
             "mode": "view"
         },
         {
             "name": "read-later",
             "title": "Read Later",
-            "subtitle": "RLog",
+            "subtitle": "rlog",
             "description": "Save current tab to reading list",
             "mode": "no-view"
         }

@@ -1,5 +1,0 @@
-- [ ] Feature: "Read Later" command (save current tab to a separate reading_list.json)
-- [ ] Feature: "Read Window Later" command (scan all open tabs, identify articles, save to reading_list.json)
-- [ ] Feature: Local viewer for reading_list.json within Raycast
-- [ ] Feature: 
-- [ ] Improvement: Better metadata extraction (support more sites)
