@@ -19,7 +19,7 @@
             "mode": "view"
         },
         {
-            "name": "setup-blog",
+            "name": "setup-rlog",
             "title": "Setup rlog",
             "subtitle": "rlog",
             "description": "Inject read and reading list code into your blog",
