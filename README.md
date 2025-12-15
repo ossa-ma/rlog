@@ -58,7 +58,8 @@ Alternatively:
 
 Go to Raycast Preferences → Extensions → rlog, then set:
 - **Blog Repository Path**: Absolute path to your blog repo (e.g., `/Users/you/projects/my-blog`).
-- **Data File Path**: Relative path to the JSON file (default: `data/reading.json`).
+- **Data File Path**: Relative path to the JSON file for your main reading log (default: `data/reading.json`).
+  - Note: The "Read Later" list is always saved to `data/reading_list.json` in the same directory as your main log.
 
 ## Usage
 
