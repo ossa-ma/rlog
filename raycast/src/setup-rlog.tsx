@@ -16,8 +16,8 @@ interface Preferences {
 }
 
 const PAGE_TEMPLATE = `
-import { promises as fs } from 'fs';
-import path from 'path';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 interface ReadingEntry {
   url: string;
@@ -28,45 +28,82 @@ interface ReadingEntry {
   thoughts?: string;
 }
 
-async function getReadings(): Promise<ReadingEntry[]> {
-  const dataPath = path.join(process.cwd(), 'data', 'reading.json');
-  try {
-    const fileContent = await fs.readFile(dataPath, 'utf-8');
-    return JSON.parse(fileContent);
-  } catch (error) {
-    return [];
-  }
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 
-export default async function ReadingPage() {
-  const readings = await getReadings();
+export default function ReadingPage() {
+  // Read data at build time
+  const dataPath = join(process.cwd(), 'data', 'reading.json');
+  let readings: ReadingEntry[] = [];
+
+  try {
+    if (existsSync(dataPath)) {
+      const fileContent = readFileSync(dataPath, 'utf-8');
+      readings = fileContent.trim() ? JSON.parse(fileContent) : [];
+    }
+  } catch (error) {
+    console.error('Error reading reading.json:', error);
+    readings = [];
+  }
 
   return (
-    <div className="prose dark:prose-invert mx-auto max-w-2xl py-8">
-      <h1 className="mb-8 text-3xl font-bold">Reading Log</h1>
-      <div className="space-y-8">
+    <section>
+      <h1 className="font-semibold text-2xl mb-8 tracking-tighter">Reading Log</h1>
+      <p className="text-neutral-600 dark:text-neutral-400 mb-2">
+        Articles, papers, and posts I've read, in reverse chronological order.
+      </p>
+      <a
+        href="https://github.com/ossa-ma/rlog"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-xs text-neutral-500 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors mb-8 block"
+      >
+        Managed with rlog ↗
+      </a>
+
+      <div className="space-y-4">
         {readings.map((entry, index) => (
-          <div key={index} className="border-b border-gray-200 dark:border-gray-800 pb-8 last:border-0">
-            <h2 className="text-xl font-semibold mb-2">
-              <a href={entry.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+          <div key={index} className="flex flex-col">
+            <div className="flex w-full justify-between items-baseline gap-4">
+              <a
+                href={entry.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-neutral-900 dark:text-neutral-100 hover:underline truncate"
+              >
                 {entry.title}
               </a>
-            </h2>
-            <div className="text-sm text-gray-500 mb-4">
-              Added on {entry.addedDate} {entry.author && \`• by \${entry.author}\`}
+              <div className="shrink-0 text-xs text-neutral-500 dark:text-neutral-400 font-mono">
+                {entry.author && <span>{entry.author}</span>}
+                {entry.author && entry.publishedDate && <span className="mx-2">•</span>}
+                {entry.publishedDate && (
+                  <span>{formatDate(entry.publishedDate)}</span>
+                )}
+              </div>
             </div>
+
             {entry.thoughts && (
-              <p className="text-gray-700 dark:text-gray-300 italic">
-                "{entry.thoughts}"
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                {entry.thoughts}
               </p>
             )}
+
+            <div className="text-xs text-neutral-400 dark:text-neutral-500 mt-1 font-mono">
+              Read on {formatDate(entry.addedDate)}
+            </div>
           </div>
         ))}
+
+        {readings.length === 0 && (
+          <p className="text-neutral-600 dark:text-neutral-400">Nothing yet. Hmm...</p>
+        )}
       </div>
-      <div className="mt-12 text-center text-sm text-gray-500">
-        Managed with <a href="https://github.com/ossa-ma/rlog" target="_blank" rel="noopener noreferrer" className="hover:underline">rlog</a>
-      </div>
-    </div>
+    </section>
   );
 }
 `;
