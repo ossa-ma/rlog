@@ -1,6 +1,6 @@
 # rlog
 
-A frictionless reading log manager that lives in your keyboard.
+A frictionless, public reading log manager that lives in your keyboard.
 
 **rlog** (reading log) is a publicly shareable record of everything you read online. It's designed for developers and writers who want to track and share their reading on their personal blogs without the friction of traditional reading trackers.
 
