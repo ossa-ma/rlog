@@ -28,7 +28,7 @@ export default async function Command() {
     });
 
     const tabs = await getOpenTabs();
-    const validTabs = tabs.filter((url) => url.startsWith("http"));
+    const validTabs = Array.from(new Set(tabs.filter((url) => url.startsWith("http"))));
 
     if (validTabs.length === 0) {
       await showToast({
