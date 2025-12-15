@@ -32,6 +32,9 @@ A rlog is like a commit history for your reading. It tracks articles, posts, dis
 - **Read Window Later**: Bulk-save **all open tabs** to your private queue.
 - **Auto-Metadata**: Fetches Title, Author, and Date from the URL automatically.
 - **Comments**: Add notes and thoughts to any logged article.
+- **View Read Log**: Open a window showing your reading history (`reading.json`).
+- **View Reading List**: Open a window showing your saved “read later” items (`reading_list.json`).
+- **Open Random Article**: Open a random article from your reading list in the browser.
 - **Blog Setup**: One-click setup to inject the reading list page into your Next.js app.
 - **Git Integration**: Optionally commit and push changes to your blog's repository immediately.
 
