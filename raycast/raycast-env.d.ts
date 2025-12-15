@@ -20,8 +20,8 @@ declare type Preferences = ExtensionPreferences
 declare namespace Preferences {
   /** Preferences accessible in the `log-read` command */
   export type LogRead = ExtensionPreferences & {}
-  /** Preferences accessible in the `setup-blog` command */
-  export type SetupBlog = ExtensionPreferences & {}
+  /** Preferences accessible in the `setup-rlog` command */
+  export type SetupRlog = ExtensionPreferences & {}
   /** Preferences accessible in the `read-later` command */
   export type ReadLater = ExtensionPreferences & {}
   /** Preferences accessible in the `log-window` command */
@@ -33,8 +33,8 @@ declare namespace Preferences {
 declare namespace Arguments {
   /** Arguments passed to the `log-read` command */
   export type LogRead = {}
-  /** Arguments passed to the `setup-blog` command */
-  export type SetupBlog = {}
+  /** Arguments passed to the `setup-rlog` command */
+  export type SetupRlog = {}
   /** Arguments passed to the `read-later` command */
   export type ReadLater = {}
   /** Arguments passed to the `log-window` command */
