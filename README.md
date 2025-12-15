@@ -4,7 +4,7 @@ A frictionless, public reading log manager that lives in your keyboard.
 
 **rlog** (reading log) is a publicly shareable record of everything you read online. It's designed for developers and writers who want to track and share their reading on their personal blogs without the friction of traditional reading trackers.
 
-## What's an rlog?
+## What's a rlog?
 
 A rlog is like a commit history for your reading. It tracks articles, posts, discussions, and everything else you consume online. The log lives on your blog (e.g., `yourblog.com/reading`) as a simple, portable JSON file.
 
