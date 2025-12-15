@@ -1,9 +1,4 @@
-import {
-  Action,
-  ActionPanel,
-  List,
-  getPreferenceValues,
-} from "@raycast/api";
+import { Action, ActionPanel, List, getPreferenceValues } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import path from "path";
 import { useState, useEffect } from "react";
