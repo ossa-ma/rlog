@@ -7,11 +7,11 @@ import {
   showToast,
   Toast,
 } from "@raycast/api";
-import { useForm } from "@raycast/utils";
+import { useForm, showFailureToast } from "@raycast/utils";
 import fs from "fs";
 import path from "path";
 import simpleGit from "simple-git";
-import { getActiveUrl, fetchMetadata } from "@rlog/shared";
+import { getActiveUrl, fetchMetadata } from "./utils";
 
 interface Preferences {
   blogPath: string;
@@ -115,9 +115,7 @@ export default function Command() {
           pushToGit: false,
         });
       } catch (error) {
-        toast.style = Toast.Style.Failure;
-        toast.title = "Failed to log read";
-        toast.message = String(error);
+        await showFailureToast(error, { title: "Failed to log read" });
       } finally {
         setIsLoading(false);
       }

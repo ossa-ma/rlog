@@ -14,48 +14,56 @@
         {
             "name": "log-read",
             "title": "Log Read",
+            "subtitle": "rlog",
             "description": "Add a new article/post/blog/page to your read list",
             "mode": "view"
         },
         {
             "name": "setup-rlog",
             "title": "Setup rlog",
+            "subtitle": "rlog",
             "description": "Inject read and reading list code into your blog",
             "mode": "view"
         },
         {
             "name": "read-later",
             "title": "Read Later",
+            "subtitle": "rlog",
             "description": "Save current tab to reading list",
             "mode": "no-view"
         },
         {
             "name": "log-window",
             "title": "Log Window",
+            "subtitle": "rlog",
             "description": "Log all open tabs in the active window",
             "mode": "no-view"
         },
         {
             "name": "read-window-later",
             "title": "Read Window Later",
+            "subtitle": "rlog",
             "description": "Save all open tabs in the active window to read later",
             "mode": "no-view"
         },
         {
             "name": "view-read-log",
             "title": "View Read Log",
+            "subtitle": "rlog",
             "description": "View your reading log",
             "mode": "view"
         },
         {
             "name": "view-reading-list",
             "title": "View Reading List",
+            "subtitle": "rlog",
             "description": "View your read later list",
             "mode": "view"
         },
         {
             "name": "open-random-article",
             "title": "Open Random Article",
+            "subtitle": "rlog",
             "description": "Open a random article from your reading list",
             "mode": "no-view"
         }
@@ -66,7 +74,11 @@
     "dependencies": {
         "@raycast/api": "^1.103.10",
         "@raycast/utils": "^1.16.0",
-        "@rlog/shared": "file:../shared",
+        "cheerio": "^1.0.0-rc.12",
+        "date-fns": "^3.6.0",
+        "ini": "^6.0.0",
+        "lz4js": "^0.2.0",
+        "node-fetch": "^3.3.2",
         "simple-git": "^3.24.0"
     },
     "devDependencies": {

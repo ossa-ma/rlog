@@ -1,7 +1,8 @@
 import { getPreferenceValues, showToast, Toast } from "@raycast/api";
+import { showFailureToast } from "@raycast/utils";
 import fs from "fs";
 import path from "path";
-import { getActiveUrl, fetchMetadata } from "@rlog/shared";
+import { getActiveUrl, fetchMetadata } from "./utils";
 
 interface Preferences {
   blogPath: string;
@@ -94,10 +95,6 @@ export default async function Command() {
       message: entry.title,
     });
   } catch (error) {
-    await showToast({
-      style: Toast.Style.Failure,
-      title: "Failed to save",
-      message: String(error),
-    });
+    await showFailureToast(error, { title: "Failed to save" });
   }
 }

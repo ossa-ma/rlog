@@ -6,7 +6,7 @@ import {
   closeMainWindow,
 } from "@raycast/api";
 import path from "path";
-import { ReadLaterEntry, loadJson } from "@rlog/shared";
+import { ReadLaterEntry, loadJson } from "./utils";
 
 interface Preferences {
   blogPath: string;

@@ -1,7 +1,7 @@
 import { getPreferenceValues, showToast, Toast } from "@raycast/api";
 import fs from "fs";
 import path from "path";
-import { getOpenTabs, fetchMetadata } from "@rlog/shared";
+import { getOpenTabs, fetchMetadata } from "./utils";
 
 interface Preferences {
   blogPath: string;

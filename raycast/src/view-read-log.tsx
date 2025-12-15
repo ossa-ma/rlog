@@ -2,13 +2,12 @@ import {
   Action,
   ActionPanel,
   List,
-  getPreferenceValues,
-  showToast,
-  Toast,
+  getPreferenceValues
 } from "@raycast/api";
+import { showFailureToast } from "@raycast/utils";
 import path from "path";
 import { useState, useEffect } from "react";
-import { ReadingEntry, loadJson } from "@rlog/shared";
+import { ReadingEntry, loadJson } from "./utils";
 
 interface Preferences {
   blogPath: string;
@@ -33,11 +32,7 @@ export default function Command() {
         }
         setReadings(data);
       } catch (error) {
-        await showToast({
-          style: Toast.Style.Failure,
-          title: "Failed to load readings",
-          message: String(error),
-        });
+        await showFailureToast(error, { title: "Failed to load readings" });
       } finally {
         setIsLoading(false);
       }
