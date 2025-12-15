@@ -28,6 +28,12 @@ declare namespace Preferences {
   export type LogWindow = ExtensionPreferences & {}
   /** Preferences accessible in the `read-window-later` command */
   export type ReadWindowLater = ExtensionPreferences & {}
+  /** Preferences accessible in the `view-read-log` command */
+  export type ViewReadLog = ExtensionPreferences & {}
+  /** Preferences accessible in the `view-reading-list` command */
+  export type ViewReadingList = ExtensionPreferences & {}
+  /** Preferences accessible in the `open-random-article` command */
+  export type OpenRandomArticle = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -41,5 +47,11 @@ declare namespace Arguments {
   export type LogWindow = {}
   /** Arguments passed to the `read-window-later` command */
   export type ReadWindowLater = {}
+  /** Arguments passed to the `view-read-log` command */
+  export type ViewReadLog = {}
+  /** Arguments passed to the `view-reading-list` command */
+  export type ViewReadingList = {}
+  /** Arguments passed to the `open-random-article` command */
+  export type OpenRandomArticle = {}
 }
 

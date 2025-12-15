@@ -45,6 +45,27 @@
             "subtitle": "rlog",
             "description": "Save all open tabs in the active window to read later",
             "mode": "no-view"
+        },
+        {
+            "name": "view-read-log",
+            "title": "View Read Log",
+            "subtitle": "rlog",
+            "description": "View your reading log",
+            "mode": "view"
+        },
+        {
+            "name": "view-reading-list",
+            "title": "View Reading List",
+            "subtitle": "rlog",
+            "description": "View your read later list",
+            "mode": "view"
+        },
+        {
+            "name": "open-random-article",
+            "title": "Open Random Article",
+            "subtitle": "rlog",
+            "description": "Open a random article from your reading list",
+            "mode": "no-view"
         }
     ],
     "platforms": [
