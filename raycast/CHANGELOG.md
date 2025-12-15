@@ -1,6 +1,6 @@
 # Rlog Changelog
 
-## [Initial Version] - {PR_MERGE_DATE}
+## [Initial Version] - 2025-12-15
 
 - **Log Read**: Instantly add the current article to your 'read' history (`reading.json`).
 - **Read Later**: Save articles to your private queue (`reading_list.json`).

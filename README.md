@@ -6,7 +6,7 @@ A frictionless, public reading log manager that lives in your keyboard.
 
 ## What's a rlog?
 
-A rlog is like a commit history for your reading. It tracks articles, posts, discussions, and everything else you consume online. The log lives on your blog (e.g., `yourblog.com/reading`) as a simple, portable JSON file.
+A rlog is like a commit history for your reading. It tracks articles, posts, discussions, and everything else you consume online. The log lives on your blog (e.g., `ossa-ma.github.io/reading`) as a simple, portable JSON file.
 
 **Why does this matter?**
 
