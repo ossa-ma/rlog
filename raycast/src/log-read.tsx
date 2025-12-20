@@ -95,7 +95,33 @@ export default function Command() {
 
         fs.writeFileSync(fullPath, JSON.stringify(readings, null, 2));
 
-        // 4. Git Integration
+        // 4. Remove from Reading List (if it exists there)
+        const readingListPath = path.join(
+          preferences.blogPath,
+          "data",
+          "reading_list.json",
+        );
+        if (fs.existsSync(readingListPath)) {
+          try {
+            const readingListContent = fs.readFileSync(readingListPath, "utf-8");
+            let readingList = JSON.parse(readingListContent);
+            const originalLength = readingList.length;
+            readingList = readingList.filter(
+              (item: { url: string }) => item.url !== values.url,
+            );
+            if (readingList.length < originalLength) {
+              fs.writeFileSync(
+                readingListPath,
+                JSON.stringify(readingList, null, 2),
+              );
+              console.log("Removed from reading list:", values.url);
+            }
+          } catch (e) {
+            console.error("Failed to update reading list:", e);
+          }
+        }
+
+        // 5. Git Integration
         if (values.pushToGit) {
           toast.title = "Pushing to Git...";
           const git = simpleGit(preferences.blogPath);
