@@ -7,6 +7,17 @@ export interface Metadata {
   publishedDate: string | null;
 }
 
+function normalizeName(name: string | undefined): string | null {
+  if (!name) return null;
+  // Handle "Last, First" format
+  if (name.includes(",")) {
+    const parts = name.split(",").map((p) => p.trim());
+    if (parts.length === 2) return `${parts[1]} ${parts[0]}`;
+  }
+  // Handle multiple spaces/newlines
+  return name.replace(/\s+/g, " ").trim();
+}
+
 function transformUrl(url: string): string {
   // Handle Arxiv PDF -> Abstract
   if (url.includes("arxiv.org/pdf/")) {
@@ -163,37 +174,39 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
     let author: string | null = null;
     if (jsonLdData && jsonLdData.author) {
       if (Array.isArray(jsonLdData.author)) {
-        author = jsonLdData.author.map((a: any) => a.name || a).join(", ");
+        author = jsonLdData.author.map((a: any) => normalizeName(a.name || a)).filter(Boolean).join(", ");
       } else if (typeof jsonLdData.author === "object") {
-        author = jsonLdData.author.name || null;
+        author = normalizeName(jsonLdData.author.name);
       } else if (typeof jsonLdData.author === "string") {
-        author = jsonLdData.author;
+        author = normalizeName(jsonLdData.author);
       }
     }
 
     if (!author) {
       const citationAuthors = $('meta[name="citation_author"]')
-        .map((_, el) => $(el).attr("content"))
-        .get();
+        .map((_, el) => normalizeName($(el).attr("content")))
+        .get()
+        .filter(Boolean);
 
       const dcAuthors = $(
         'meta[name="DC.creator"], meta[name="dc.creator"], meta[name="DC.author"], meta[name="dc.author"]',
       )
-        .map((_, el) => $(el).attr("content"))
-        .get();
+        .map((_, el) => normalizeName($(el).attr("content")))
+        .get()
+        .filter(Boolean);
 
       author =
         citationAuthors.length > 0
           ? citationAuthors.join(", ")
           : dcAuthors.length > 0
             ? dcAuthors.join(", ")
-            : $('meta[name="author"]').attr("content") ||
-            $('meta[property="article:author"]').attr("content") ||
-            $('meta[property="og:author"]').attr("content") ||
-            $('meta[name="twitter:creator"]').attr("content") ||
-            $('a[rel="author"]').first().text().trim() ||
-            $(".author").first().text().trim() ||
-            $(".byline").first().text().trim() ||
+            : normalizeName($('meta[name="author"]').attr("content")) ||
+            normalizeName($('meta[property="article:author"]').attr("content")) ||
+            normalizeName($('meta[property="og:author"]').attr("content")) ||
+            normalizeName($('meta[name="twitter:creator"]').attr("content")) ||
+            normalizeName($('a[rel="author"]').first().text()) ||
+            normalizeName($(".author").first().text()) ||
+            normalizeName($(".byline").first().text()) ||
             null;
     }
 
