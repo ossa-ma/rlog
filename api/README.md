@@ -5,17 +5,17 @@ Backend service for rlog - frictionless reading log management with GitHub integ
 ## Features
 
 ### Free Tier (Current)
-- ✅ GitHub OAuth authentication
-- ✅ Reading log CRUD operations
-- ✅ Automatic metadata extraction (title, author, date)
-- ✅ Direct commit to user's GitHub repository
-- ✅ Cross-platform support (browser extensions, mobile apps)
+- GitHub OAuth authentication
+- Reading log CRUD operations
+- Automatic metadata extraction (title, author, date)
+- Direct commit to user's GitHub repository
+- Cross-platform support (browser extensions, mobile apps)
 
 ### Pro Tier (Future)
-- 🔄 AI-powered summaries (OpenAI integration)
-- 🔄 Semantic search (vector embeddings)
-- 🔄 Cross-device sync
-- 🔄 Analytics and insights
+- AI-powered summaries (OpenAI integration)
+- Semantic search (vector embeddings)
+- Cross-device sync
+- Analytics and insights
 
 ## Architecture
 
@@ -89,17 +89,12 @@ cp .env.example .env
 
 **Or manually:**
 ```bash
-uv run python -m api.main
+uv run uvicorn main:app --reload
 ```
 
-**With auto-reload (development):**
+**Production mode (no reload):**
 ```bash
-uv run uvicorn api.main:app --reload
-```
-
-**Production mode:**
-```bash
-uv run uvicorn api.main:app --host 0.0.0.0 --port 8000
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 API will be available at: http://localhost:8000
