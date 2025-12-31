@@ -1,21 +1,31 @@
-# Multi-stage build for minimal image size
-FROM python:3.13-slim AS builder
+# syntax=docker/dockerfile:1
 
-# Install uv (fast Python package manager)
-RUN pip install --no-cache-dir uv
+# Use official uv image (pinned version for reproducibility)
+FROM ghcr.io/astral-sh/uv:0.5.13-python3.13-bookworm-slim AS builder
 
-WORKDIR /build
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
 
-# Copy dependency files first (for layer caching)
-COPY pyproject.toml ./
+# Copy from the cache instead of linking since it's a separate filesystem
+ENV UV_LINK_MODE=copy
 
-# Install dependencies to a virtual environment
-RUN uv venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN uv sync --frozen
+WORKDIR /app
 
-# Final stage - minimal runtime image, necessary, we need to test how much this shrinks it by
-FROM python:3.13-slim
+# Install dependencies first (cached layer)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project --no-dev
+
+# Copy source code
+COPY . /app
+
+# Install the project itself (non-editable for production)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev --no-editable
+
+# Final stage - minimal runtime image
+FROM python:3.13-slim-bookworm
 
 # Install security updates
 RUN apt-get update && \
@@ -24,22 +34,19 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
-
-# Set environment
-ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
-WORKDIR /app
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
 # Copy application code
-COPY . .
+COPY --from=builder --chown=app:app /app /app
 
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
-USER appuser
+# Create non-root user
+RUN useradd -m -u 1000 app
+USER app
+
+# Place venv on PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
 
 # Expose port
 EXPOSE 8000
