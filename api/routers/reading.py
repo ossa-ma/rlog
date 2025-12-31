@@ -94,12 +94,12 @@ async def log_reading(
     except github.GitHubAPIError as e:
         raise HTTPException(
             status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"GitHub API error: {e.message}"
+            detail=f"GitHub API error: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to log reading: {str(e)}"
+            detail=f"Failed to log reading: {str(e)}",
         )
 
 
@@ -126,7 +126,7 @@ async def commit_reading_log(
     """
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Manual commit endpoint not yet implemented. Use /log to add entries."
+        detail="Manual commit endpoint not yet implemented. Use /log to add entries.",
     )
 
 
@@ -175,10 +175,10 @@ async def get_reading_history(
     except github.GitHubAPIError as e:
         raise HTTPException(
             status_code=e.status_code or status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch reading history: {e.message}"
+            detail=f"Failed to fetch reading history: {e.message}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch reading history: {str(e)}"
+            detail=f"Failed to fetch reading history: {str(e)}",
         )

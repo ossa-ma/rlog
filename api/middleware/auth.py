@@ -1,6 +1,6 @@
 """Authentication middleware and dependencies."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import Depends, HTTPException, status
@@ -28,9 +28,9 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
     to_encode = data.copy()
 
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
 
     to_encode.update({"exp": expire})
 
@@ -51,11 +51,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
         HTTPException: If token is invalid or expired
     """
     try:
-        payload = jwt.decode(
-            token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm]
-        )
+        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         return payload
 
     except JWTError:
@@ -66,9 +62,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
         )
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-) -> User:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
     """
     Dependency to get current authenticated user from JWT token.
 

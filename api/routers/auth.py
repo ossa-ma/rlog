@@ -49,7 +49,7 @@ async def get_auth_url() -> AuthURLResponse:
 
 @router.get("/callback", response_model=TokenResponse)
 async def auth_callback(
-    code: str = Query(..., description="OAuth authorization code from GitHub")
+    code: str = Query(..., description="OAuth authorization code from GitHub"),
 ) -> TokenResponse:
     """
     GitHub OAuth callback endpoint.
@@ -87,8 +87,7 @@ async def auth_callback(
 
         # Generate JWT
         access_token = create_access_token(
-            data=token_payload,
-            expires_delta=timedelta(minutes=settings.jwt_expire_minutes)
+            data=token_payload, expires_delta=timedelta(minutes=settings.jwt_expire_minutes)
         )
 
         return TokenResponse(
@@ -99,25 +98,22 @@ async def auth_callback(
                 "username": user_data["login"],
                 "email": user_data.get("email"),
                 "avatar_url": user_data.get("avatar_url"),
-            }
+            },
         )
 
     except github.GitHubAPIError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"GitHub OAuth failed: {e.message}"
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"GitHub OAuth failed: {e.message}"
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Authentication failed: {str(e)}"
+            detail=f"Authentication failed: {str(e)}",
         )
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(
-    refresh_token: str
-) -> TokenResponse:
+async def refresh_token(refresh_token: str) -> TokenResponse:
     """
     Refresh access token.
 
@@ -132,5 +128,5 @@ async def refresh_token(
     """
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Token refresh not yet implemented. Request a new token via OAuth."
+        detail="Token refresh not yet implemented. Request a new token via OAuth.",
     )
