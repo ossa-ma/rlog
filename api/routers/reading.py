@@ -3,15 +3,15 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.middleware.auth import get_current_user
-from api.models.user import User, GitHubRepo
-from api.models.reading import (
+from middleware.auth import get_current_user
+from models.user import User, GitHubRepo
+from models.reading import (
     ReadingEntryCreate,
     ReadingEntry,
     ReadingEntryResponse,
     CommitRequest,
 )
-from api.services import github, metadata
+from services import github, metadata
 
 
 router = APIRouter(prefix="/reading", tags=["reading"])

@@ -7,8 +7,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 
-from api.config import settings
-from api.models.user import User
+from config import settings
+from models.user import User
 
 
 security = HTTPBearer()

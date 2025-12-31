@@ -15,8 +15,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.config import settings
-from api.routers import auth, reading, health
+from config import settings
+from routers import auth, reading, health
 
 
 @asynccontextmanager
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "api.main:app",
+        "main:app",
         host=settings.api_host,
         port=settings.api_port,
         reload=not settings.is_production,

@@ -4,9 +4,9 @@ from datetime import timedelta
 from fastapi import APIRouter, HTTPException, status, Query
 from pydantic import BaseModel
 
-from api.config import settings
-from api.middleware.auth import create_access_token
-from api.services import github
+from config import settings
+from middleware.auth import create_access_token
+from services import github
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])

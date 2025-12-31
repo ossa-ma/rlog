@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from api.config import settings
+from config import settings
 
 
 router = APIRouter(tags=["health"])
