@@ -23,17 +23,16 @@ async def log_reading(
     repo_config: GitHubRepo,
     current_user: User = Depends(get_current_user),
 ) -> ReadingEntryResponse:
-    """
-    Log a new reading entry and commit to user's GitHub repository.
+    """Log a new reading entry and commit to user's GitHub repository.
 
     This is the main endpoint browser extensions and mobile apps will use.
 
     Workflow:
-    1. Optionally fetch metadata (title, author, date) from URL
-    2. Create reading entry with timestamp
-    3. Fetch current reading.json from user's repo
-    4. Add new entry to the log
-    5. Commit updated reading.json back to repo
+        1. Optionally fetch metadata (title, author, date) from URL
+        2. Create reading entry with timestamp
+        3. Fetch current reading.json from user's repo
+        4. Add new entry to the log
+        5. Commit updated reading.json back to repo
 
     Args:
         entry_data: Reading entry information (URL, comment, tags)

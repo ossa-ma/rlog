@@ -21,19 +21,13 @@ from routers import auth, reading, health
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Application lifespan manager.
-
-    Handles startup and shutdown events.
-    """
-    # Startup
-    print(f"🚀 rlog API starting in {settings.environment} mode")
-    print(f"📍 CORS origins: {settings.cors_origins_list}")
+    """Application lifespan manager."""
+    print(f"rlog API starting in {settings.environment} mode")
+    print(f"CORS origins: {settings.cors_origins_list}")
 
     yield
 
-    # Shutdown
-    print("👋 rlog API shutting down")
+    print("rlog API shutting down")
 
 
 # Create FastAPI application
@@ -67,8 +61,8 @@ async def global_exception_handler(request, exc: Exception) -> JSONResponse:
         status_code=500,
         content={
             "detail": "Internal server error",
-            "error": str(exc) if not settings.is_production else "An error occurred"
-        }
+            "error": str(exc) if not settings.is_production else "An error occurred",
+        },
     )
 
 
