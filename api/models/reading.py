@@ -94,28 +94,3 @@ class ReadingEntryResponse(BaseModel):
             }
         }
     )
-
-
-class CommitRequest(BaseModel):
-    """Request to commit reading log to GitHub."""
-
-    repo_owner: str = Field(..., description="GitHub repository owner")
-    repo_name: str = Field(..., description="GitHub repository name")
-    branch: str = Field(default="main", description="Branch to commit to")
-    reading_json_path: str = Field(
-        default="data/reading.json", description="Path to reading.json in repo"
-    )
-    commit_message: str | None = Field(
-        None, description="Custom commit message (auto-generated if not provided)"
-    )
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "repo_owner": "ossa-ma",
-                "repo_name": "blog",
-                "branch": "main",
-                "reading_json_path": "data/reading.json",
-            }
-        }
-    )

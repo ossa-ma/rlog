@@ -9,7 +9,6 @@ from models.reading import (
     ReadingEntryCreate,
     ReadingEntry,
     ReadingEntryResponse,
-    CommitRequest,
 )
 from services import github, metadata
 
@@ -100,33 +99,6 @@ async def log_reading(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to log reading: {str(e)}",
         )
-
-
-@router.post("/commit", response_model=dict)
-async def commit_reading_log(
-    commit_data: CommitRequest,
-    current_user: User = Depends(get_current_user),
-) -> dict:
-    """
-    Manually trigger commit of local reading log to GitHub.
-
-    This endpoint is for advanced users who manage reading.json locally
-    and want to push it to GitHub via API.
-
-    Args:
-        commit_data: Commit configuration
-        current_user: Authenticated user (from JWT)
-
-    Returns:
-        Success response with commit details
-
-    Raises:
-        HTTPException: If commit fails
-    """
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Manual commit endpoint not yet implemented. Use /log to add entries.",
-    )
 
 
 @router.get("/history", response_model=dict)
