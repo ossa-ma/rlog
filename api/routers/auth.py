@@ -1,4 +1,8 @@
-"""GitHub OAuth authentication router."""
+"""GitHub OAuth authentication router.
+
+Note: Token refresh not implemented. JWTs expire in 7 days - users re-auth via OAuth.
+Future: Add refresh tokens if frequent re-authentication becomes friction point.
+"""
 
 from datetime import timedelta
 from fastapi import APIRouter, HTTPException, status, Query
@@ -110,23 +114,3 @@ async def auth_callback(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Authentication failed: {str(e)}",
         )
-
-
-@router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(refresh_token: str) -> TokenResponse:
-    """
-    Refresh access token.
-
-    Placeholder for future token refresh implementation.
-    Currently returns error as refresh tokens are not yet implemented.
-
-    Args:
-        refresh_token: Refresh token (not yet implemented)
-
-    Raises:
-        HTTPException: Not implemented
-    """
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Token refresh not yet implemented. Request a new token via OAuth.",
-    )
