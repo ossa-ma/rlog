@@ -98,6 +98,18 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
     } else if (jsonLdData && jsonLdData.name) {
       title = jsonLdData.name;
     } else {
+      // Special handling for arXiv papers
+      let arxivTitle = null;
+      if (url.includes("arxiv.org")) {
+        // arXiv has a specific structure: h1.title contains "Title:" followed by the actual title
+        const h1Title = $("h1.title");
+        if (h1Title.length > 0) {
+          const fullText = h1Title.text();
+          // Remove the "Title:" prefix if present
+          arxivTitle = fullText.replace(/^Title:\s*/i, "").trim();
+        }
+      }
+
       // Heuristic: Some blogs use h2 for the post title if h1 is site title
       // We prefer og:title, but if it matches the site title (often <title>), we might want to look deeper.
       // For now, let's keep the standard order but add h2 as a fallback.
@@ -151,7 +163,9 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
 
       // If og:title exists and is different from page title (which might be just "Author Name"), use it.
       // Otherwise, prefer h1 or h2 if they look like titles.
-      if (citationTitle) {
+      if (arxivTitle) {
+        title = arxivTitle;
+      } else if (citationTitle) {
         title = citationTitle;
       } else if (dcTitle) {
         title = dcTitle;
@@ -171,10 +185,28 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
     }
 
     // 3. Extract Author
+    // Detect if this is an academic paper (has citation_author meta tags or is from arxiv/openreview)
+    const citationAuthors = $('meta[name="citation_author"]')
+      .map((_, el) => normalizeName($(el).attr("content")))
+      .get()
+      .filter(Boolean);
+
+    const isAcademicPaper = citationAuthors.length > 0 ||
+                            url.includes("arxiv.org") ||
+                            url.includes("openreview.net") ||
+                            jsonLdData?.["@type"] === "ScholarlyArticle";
+
     let author: string | null = null;
     if (jsonLdData && jsonLdData.author) {
       if (Array.isArray(jsonLdData.author)) {
-        author = jsonLdData.author.map((a: any) => normalizeName(a.name || a)).filter(Boolean).join(", ");
+        const authors = jsonLdData.author.map((a: any) => normalizeName(a.name || a)).filter(Boolean);
+        if (isAcademicPaper) {
+          author = authors.length > 1 ? `${authors[0]} et al.` : authors[0];
+        } else {
+          author = authors.length > 4
+            ? `${authors.slice(0, 4).join(", ")}, et al.`
+            : authors.join(", ");
+        }
       } else if (typeof jsonLdData.author === "object") {
         author = normalizeName(jsonLdData.author.name);
       } else if (typeof jsonLdData.author === "string") {
@@ -183,11 +215,6 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
     }
 
     if (!author) {
-      const citationAuthors = $('meta[name="citation_author"]')
-        .map((_, el) => normalizeName($(el).attr("content")))
-        .get()
-        .filter(Boolean);
-
       const dcAuthors = $(
         'meta[name="DC.creator"], meta[name="dc.creator"], meta[name="DC.author"], meta[name="dc.author"]',
       )
@@ -195,19 +222,28 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
         .get()
         .filter(Boolean);
 
-      author =
-        citationAuthors.length > 0
-          ? citationAuthors.join(", ")
-          : dcAuthors.length > 0
-            ? dcAuthors.join(", ")
-            : normalizeName($('meta[name="author"]').attr("content")) ||
-            normalizeName($('meta[property="article:author"]').attr("content")) ||
-            normalizeName($('meta[property="og:author"]').attr("content")) ||
-            normalizeName($('meta[name="twitter:creator"]').attr("content")) ||
-            normalizeName($('a[rel="author"]').first().text()) ||
-            normalizeName($(".author").first().text()) ||
-            normalizeName($(".byline").first().text()) ||
-            null;
+      if (citationAuthors.length > 0) {
+        // Academic paper: first author + et al.
+        author = citationAuthors.length > 1
+          ? `${citationAuthors[0]} et al.`
+          : citationAuthors[0];
+      } else if (dcAuthors.length > 0) {
+        // DC authors: treat as academic if multiple
+        author = dcAuthors.length > 1
+          ? `${dcAuthors[0]} et al.`
+          : dcAuthors[0];
+      } else {
+        // Blog/article fallback
+        author =
+          normalizeName($('meta[name="author"]').attr("content")) ||
+          normalizeName($('meta[property="article:author"]').attr("content")) ||
+          normalizeName($('meta[property="og:author"]').attr("content")) ||
+          normalizeName($('meta[name="twitter:creator"]').attr("content")) ||
+          normalizeName($('a[rel="author"]').first().text()) ||
+          normalizeName($(".author").first().text()) ||
+          normalizeName($(".byline").first().text()) ||
+          null;
+      }
     }
 
     // 4. Extract Date
