@@ -3,4 +3,11 @@ node_modules
 dist
 .git
 .agent
+*.env
 internal/
+ios/
+
+# Private code
+api/routers/premium/
+api/services/premium/
+api/models/premium.py
