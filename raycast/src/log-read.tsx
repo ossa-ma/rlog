@@ -200,11 +200,11 @@ export default function Command() {
         {...itemProps.rating}
       >
         <Form.Dropdown.Item value="" title="No rating" />
-        <Form.Dropdown.Item value="1" title="⭐" />
-        <Form.Dropdown.Item value="2" title="⭐⭐" />
-        <Form.Dropdown.Item value="3" title="⭐⭐⭐" />
-        <Form.Dropdown.Item value="4" title="⭐⭐⭐⭐" />
-        <Form.Dropdown.Item value="5" title="⭐⭐⭐⭐⭐" />
+        <Form.Dropdown.Item value="1" title="1" />
+        <Form.Dropdown.Item value="2" title="2" />
+        <Form.Dropdown.Item value="3" title="3" />
+        <Form.Dropdown.Item value="4" title="4" />
+        <Form.Dropdown.Item value="5" title="5" />
       </Form.Dropdown>
       {/* Can't default to past dates e.g. last week, last month, user must do this manually */}
       <Form.DatePicker title="Date Added" {...itemProps.date} />

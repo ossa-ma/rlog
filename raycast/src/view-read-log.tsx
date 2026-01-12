@@ -9,11 +9,6 @@ interface Preferences {
   dataPath: string;
 }
 
-function getRatingStars(rating?: number): string {
-  if (!rating) return "";
-  return "⭐".repeat(rating);
-}
-
 export default function Command() {
   const [readings, setReadings] = useState<ReadingEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +41,7 @@ export default function Command() {
       {readings.map((entry, index) => {
         const accessories = [];
         if (entry.rating) {
-          accessories.push({ text: getRatingStars(entry.rating) });
+          accessories.push({ text: String(entry.rating) });
         }
         accessories.push({ text: new Date(entry.addedDate).toLocaleDateString() });
 

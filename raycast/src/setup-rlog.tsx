@@ -80,7 +80,7 @@ export default function ReadingPage() {
                 {entry.title}
               </a>
               <div className="shrink-0 text-xs text-neutral-500 dark:text-neutral-400 font-mono">
-                {entry.rating && <span>{"⭐".repeat(entry.rating)}</span>}
+                {entry.rating && <span>{entry.rating}</span>}
                 {entry.rating && (entry.author || entry.publishedDate) && <span className="mx-2">•</span>}
                 {entry.author && <span>{entry.author}</span>}
                 {entry.author && entry.publishedDate && <span className="mx-2">•</span>}
