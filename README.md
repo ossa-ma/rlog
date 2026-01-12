@@ -32,6 +32,7 @@ A rlog is like a commit history for your reading. It tracks articles, posts, dis
 - **Read Window Later**: Bulk-save **all open tabs** to your private queue.
 - **Auto-Metadata**: Fetches Title, Author, and Date from the URL automatically.
 - **Comments**: Add notes and thoughts to any logged article.
+- **Ratings**: Optionally rate articles from 1-5 stars to track quality and build training data for future AI features.
 - **View Read Log**: Open a window showing your reading history (`reading.json`).
 - **View Reading List**: Open a window showing your saved “read later” items (`reading_list.json`).
 - **Open Random Article**: Open a random article from your reading list in the browser.
@@ -99,7 +100,8 @@ Your `reading.json` is simple, portable JSON:
     "author": "John Developer",
     "publishedDate": "2025-12-10",
     "dateRead": "2025-12-14T10:30:00Z",
-    "thoughts": "Great insights on testing strategies"
+    "thoughts": "Great insights on testing strategies",
+    "rating": 5
   }
 ]
 ```

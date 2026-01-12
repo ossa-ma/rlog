@@ -7,6 +7,7 @@ export interface ReadingEntry {
   publishedDate: string | null;
   addedDate: string;
   thoughts?: string;
+  rating?: number;
 }
 
 export interface ReadLaterEntry {

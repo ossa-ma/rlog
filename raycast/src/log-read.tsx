@@ -25,12 +25,14 @@ interface ReadingEntry {
   publishedDate: string | null;
   addedDate: string;
   thoughts?: string;
+  rating?: number;
 }
 
 // Could display Title and Author fields for user to manually verify and edit
 interface FormValues {
   url: string;
   thoughts: string;
+  rating: string;
   date: Date | null;
   pushToGit: boolean;
 }
@@ -43,6 +45,7 @@ export default function Command() {
     initialValues: {
       url: "",
       thoughts: "",
+      rating: "",
       date: new Date(),
       pushToGit: false,
     },
@@ -67,6 +70,7 @@ export default function Command() {
           publishedDate: publishedDate ? publishedDate.split("T")[0] : null,
           addedDate: (values.date || new Date()).toISOString().split("T")[0],
           thoughts: values.thoughts.trim() || undefined,
+          rating: values.rating ? parseInt(values.rating, 10) : undefined,
         };
 
         // 3. Read/Write File
@@ -137,6 +141,7 @@ export default function Command() {
         reset({
           url: "",
           thoughts: "",
+          rating: "",
           date: new Date(),
           pushToGit: false,
         });
@@ -190,6 +195,17 @@ export default function Command() {
         placeholder="Optional thoughts..."
         {...itemProps.thoughts}
       />
+      <Form.Dropdown
+        title="Rating"
+        {...itemProps.rating}
+      >
+        <Form.Dropdown.Item value="" title="No rating" />
+        <Form.Dropdown.Item value="1" title="⭐" />
+        <Form.Dropdown.Item value="2" title="⭐⭐" />
+        <Form.Dropdown.Item value="3" title="⭐⭐⭐" />
+        <Form.Dropdown.Item value="4" title="⭐⭐⭐⭐" />
+        <Form.Dropdown.Item value="5" title="⭐⭐⭐⭐⭐" />
+      </Form.Dropdown>
       {/* Can't default to past dates e.g. last week, last month, user must do this manually */}
       <Form.DatePicker title="Date Added" {...itemProps.date} />
       {/* <Form.DatePicker

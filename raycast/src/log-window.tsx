@@ -15,6 +15,7 @@ interface ReadingEntry {
   publishedDate: string | null;
   addedDate: string;
   thoughts?: string;
+  rating?: number;
 }
 
 export default async function Command() {
