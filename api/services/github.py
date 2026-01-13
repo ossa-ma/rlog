@@ -2,10 +2,22 @@
 
 import json
 import base64
+import ssl
 from typing import Any
 from datetime import datetime
 
 import aiohttp
+import certifi
+
+
+def _get_ssl_context() -> ssl.SSLContext:
+    """Create SSL context using certifi certificates (fixes macOS Python SSL issues)."""
+    return ssl.create_default_context(cafile=certifi.where())
+
+
+def _create_connector() -> aiohttp.TCPConnector:
+    """Create TCP connector with proper SSL context."""
+    return aiohttp.TCPConnector(ssl=_get_ssl_context())
 
 
 class GitHubAPIError(Exception):
@@ -32,7 +44,7 @@ async def exchange_code_for_token(code: str, client_id: str, client_secret: str)
     Raises:
         GitHubAPIError: If token exchange fails
     """
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=_create_connector()) as session:
         async with session.post(
             "https://github.com/login/oauth/access_token",
             json={
@@ -45,13 +57,15 @@ async def exchange_code_for_token(code: str, client_id: str, client_secret: str)
             if response.status != 200:
                 raise GitHubAPIError(
                     f"Failed to exchange code for token: {response.status}",
-                    status_code=response.status
+                    status_code=response.status,
                 )
 
             data = await response.json()
 
             if "error" in data:
-                raise GitHubAPIError(f"GitHub OAuth error: {data.get('error_description', data['error'])}")
+                raise GitHubAPIError(
+                    f"GitHub OAuth error: {data.get('error_description', data['error'])}"
+                )
 
             return data["access_token"]
 
@@ -69,7 +83,7 @@ async def get_github_user(access_token: str) -> dict[str, Any]:
     Raises:
         GitHubAPIError: If user fetch fails
     """
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=_create_connector()) as session:
         async with session.get(
             "https://api.github.com/user",
             headers={
@@ -79,19 +93,14 @@ async def get_github_user(access_token: str) -> dict[str, Any]:
         ) as response:
             if response.status != 200:
                 raise GitHubAPIError(
-                    f"Failed to fetch user info: {response.status}",
-                    status_code=response.status
+                    f"Failed to fetch user info: {response.status}", status_code=response.status
                 )
 
             return await response.json()
 
 
 async def get_file_from_repo(
-    owner: str,
-    repo: str,
-    path: str,
-    branch: str,
-    access_token: str
+    owner: str, repo: str, path: str, branch: str, access_token: str
 ) -> dict[str, Any]:
     """
     Get file contents from GitHub repository.
@@ -109,7 +118,7 @@ async def get_file_from_repo(
     Raises:
         GitHubAPIError: If file fetch fails
     """
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=_create_connector()) as session:
         async with session.get(
             f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
             params={"ref": branch},
@@ -125,7 +134,7 @@ async def get_file_from_repo(
             if response.status != 200:
                 raise GitHubAPIError(
                     f"Failed to fetch file from repo: {response.status}",
-                    status_code=response.status
+                    status_code=response.status,
                 )
 
             return await response.json()
@@ -139,7 +148,7 @@ async def commit_file_to_repo(
     message: str,
     branch: str,
     access_token: str,
-    sha: str | None = None
+    sha: str | None = None,
 ) -> dict[str, Any]:
     """
     Commit file to GitHub repository.
@@ -173,7 +182,7 @@ async def commit_file_to_repo(
     if sha:
         payload["sha"] = sha
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=_create_connector()) as session:
         async with session.put(
             f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
             json=payload,
@@ -186,7 +195,7 @@ async def commit_file_to_repo(
                 error_data = await response.json()
                 raise GitHubAPIError(
                     f"Failed to commit file: {error_data.get('message', 'Unknown error')}",
-                    status_code=response.status
+                    status_code=response.status,
                 )
 
             return await response.json()
@@ -199,7 +208,7 @@ async def update_reading_log(
     branch: str,
     new_entry: dict[str, Any],
     access_token: str,
-    commit_message: str | None = None
+    commit_message: str | None = None,
 ) -> dict[str, Any]:
     """
     Update reading log by adding a new entry and committing to GitHub.
@@ -251,5 +260,5 @@ async def update_reading_log(
         message=commit_message,
         branch=branch,
         access_token=access_token,
-        sha=file_data["sha"]
+        sha=file_data["sha"],
     )
