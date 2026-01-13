@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 from fastapi import APIRouter, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse
 import urllib.parse
 
 from config import settings
@@ -13,7 +13,7 @@ from services import github
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.get("/mobile-callback")
+@router.get("/mobile-callback", response_class=HTMLResponse)
 async def mobile_callback(
     code: str = Query(..., description="OAuth authorization code from GitHub"),
 ):
@@ -24,14 +24,14 @@ async def mobile_callback(
     1. Receives code from GitHub
     2. Exchanges for access token
     3. Creates JWT
-    4. Redirects to custom URL scheme (rlog://) with token
+    4. Returns HTML with JavaScript to trigger deep link
 
     Flow:
     - GitHub redirects here after user authorizes
     - We exchange code for GitHub token
     - We create our own JWT
-    - We redirect to rlog://oauth/callback?token=...&user_id=...&username=...
-    - iOS app receives the URL and extracts token + user info
+    - We return HTML that triggers rlog://oauth/callback?token=...
+    - iOS app receives the deep link and extracts token + user info
     """
     try:
         # Exchange code for GitHub access token
@@ -58,8 +58,8 @@ async def mobile_callback(
             data=token_payload, expires_delta=timedelta(minutes=settings.jwt_expire_minutes)
         )
 
-        # Redirect to mobile app with token and user info
-        redirect_url = (
+        # Build deep link URL
+        deep_link = (
             f"rlog://oauth/callback"
             f"?token={urllib.parse.quote(access_token)}"
             f"&user_id={user_data['id']}"
@@ -68,14 +68,94 @@ async def mobile_callback(
             f"&avatar_url={urllib.parse.quote(user_data.get('avatar_url', ''))}"
         )
 
-        return RedirectResponse(url=redirect_url)
+        # Return HTML with JavaScript to trigger deep link
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Redirecting...</title>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: #f5f5f7;
+                }}
+                .container {{
+                    text-align: center;
+                    padding: 2rem;
+                }}
+                h1 {{
+                    color: #1d1d1f;
+                    margin-bottom: 1rem;
+                }}
+                p {{
+                    color: #86868b;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>✓ Login Successful</h1>
+                <p>Returning to rlog...</p>
+            </div>
+            <script>
+                // Trigger deep link immediately
+                window.location.href = "{deep_link}";
+            </script>
+        </body>
+        </html>
+        """
+
+        return HTMLResponse(content=html_content)
 
     except github.GitHubAPIError as e:
-        # Redirect to app with error
+        # Return HTML with error deep link
         error_msg = urllib.parse.quote(f"GitHub OAuth failed: {e.message}")
-        return RedirectResponse(url=f"rlog://oauth/callback?error={error_msg}")
+        error_link = f"rlog://oauth/callback?error={error_msg}"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authentication Error</title>
+            <meta charset="utf-8">
+        </head>
+        <body>
+            <h1>Authentication Failed</h1>
+            <p>{e.message}</p>
+            <script>
+                window.location.href = "{error_link}";
+            </script>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
 
     except Exception as e:
-        # Redirect to app with generic error
+        # Return HTML with generic error
         error_msg = urllib.parse.quote("Authentication failed")
-        return RedirectResponse(url=f"rlog://oauth/callback?error={error_msg}")
+        error_link = f"rlog://oauth/callback?error={error_msg}"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authentication Error</title>
+            <meta charset="utf-8">
+        </head>
+        <body>
+            <h1>Authentication Failed</h1>
+            <p>An error occurred during authentication.</p>
+            <script>
+                window.location.href = "{error_link}";
+            </script>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
