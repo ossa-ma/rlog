@@ -233,15 +233,21 @@ async def update_reading_log(
     # Fetch current file
     file_data = await get_file_from_repo(owner, repo, path, branch, access_token)
 
-    # Parse existing content or create new structure
+    # Parse existing content or create new flat list (Raycast format)
     if file_data["content"]:
         content_decoded = base64.b64decode(file_data["content"]).decode("utf-8")
         reading_log = json.loads(content_decoded)
+
+        # Convert old dict format to flat list if needed
+        if isinstance(reading_log, dict) and "entries" in reading_log:
+            reading_log = reading_log["entries"]
+        elif not isinstance(reading_log, list):
+            reading_log = []
     else:
-        reading_log = {"entries": []}
+        reading_log = []
 
     # Add new entry at the beginning (most recent first)
-    reading_log["entries"].insert(0, new_entry)
+    reading_log.insert(0, new_entry)
 
     # Generate commit message
     if not commit_message:
@@ -249,7 +255,7 @@ async def update_reading_log(
         timestamp = datetime.now().strftime("%Y-%m-%d")
         commit_message = f"Add reading entry: {entry_title} ({timestamp})"
 
-    # Commit updated file
+    # Commit updated file (as flat list)
     new_content = json.dumps(reading_log, indent=2, ensure_ascii=False)
 
     return await commit_file_to_repo(

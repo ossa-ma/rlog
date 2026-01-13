@@ -47,39 +47,50 @@ async def log_reading(
     try:
         # Fetch metadata if requested
         if entry_data.fetch_metadata:
+            print(f"🔍 [/reading/log] Fetching metadata for {entry_data.url}")
             try:
                 meta = await metadata.fetch_metadata_safe(str(entry_data.url))
-                title = entry_data.title or meta["title"]
+                title = entry_data.title or meta["title"] or str(entry_data.url)
                 author = entry_data.author or meta["author"]
-                pub_date = entry_data.publication_date or meta["publication_date"]
-            except Exception:
-                # If metadata fetch fails, use provided data or None
-                title = entry_data.title
+                pub_date = entry_data.published_date or meta["publishedDate"]
+                print(f"✅ [/reading/log] Metadata fetched: title={title}")
+            except Exception as e:
+                # If metadata fetch fails, use provided data or fallback
+                print(f"⚠️  [/reading/log] Metadata fetch failed: {e}")
+                title = entry_data.title or str(entry_data.url)
                 author = entry_data.author
-                pub_date = entry_data.publication_date
+                pub_date = entry_data.published_date
         else:
-            title = entry_data.title
+            print(f"⏭️  [/reading/log] Skipping metadata fetch")
+            title = entry_data.title or str(entry_data.url)
             author = entry_data.author
-            pub_date = entry_data.publication_date
+            pub_date = entry_data.published_date
 
-        # Create reading entry
+        # Create reading entry with today's date in YYYY-MM-DD format
+        print(f"📝 [/reading/log] Creating reading entry...")
+        today = datetime.now().strftime("%Y-%m-%d")
+
         reading_entry = ReadingEntry(
             url=entry_data.url,
             title=title,
             author=author,
-            publication_date=pub_date,
-            date_read=datetime.now(),
-            comment=entry_data.comment,
-            tags=entry_data.tags,
+            published_date=pub_date,
+            added_date=today,
+            thoughts=entry_data.thoughts,
+            rating=entry_data.rating,
         )
+        print(f"✅ [/reading/log] Reading entry created")
 
-        # Commit to GitHub
+        # Commit to GitHub (serialize with camelCase aliases)
+        print(f"⬆️  [/reading/log] Committing to GitHub...")
+        entry_dict = reading_entry.model_dump(by_alias=True, exclude_none=True, mode="json")
+
         await github.update_reading_log(
             owner=repo_config.owner,
             repo=repo_config.repo,
             path=repo_config.reading_json_path,
             branch=repo_config.branch,
-            new_entry=reading_entry.model_dump(mode="json"),
+            new_entry=entry_dict,
             access_token=current_user.access_token,
         )
 
@@ -140,6 +151,10 @@ async def get_reading_history(
 
         content = base64.b64decode(file_data["content"]).decode("utf-8")
         reading_log = json.loads(content)
+
+        # If it's a flat list (Raycast format), wrap it for API response
+        if isinstance(reading_log, list):
+            return {"entries": reading_log}
 
         return reading_log
 

@@ -21,7 +21,7 @@ async def fetch_metadata(url: str, timeout: int = 10) -> dict[str, str | None]:
         timeout: Request timeout in seconds
 
     Returns:
-        Dictionary with title, author, publication_date (None if not found)
+        Dictionary with title, author, publishedDate (None if not found)
 
     Raises:
         MetadataFetchError: If fetch fails
@@ -64,14 +64,14 @@ def extract_metadata_from_html(html: str, url: str) -> dict[str, str | None]:
         url: Original URL (for context)
 
     Returns:
-        Dictionary with title, author, publication_date
+        Dictionary with title, author, publishedDate
     """
     soup = BeautifulSoup(html, "lxml")
 
     metadata: dict[str, str | None] = {
         "title": None,
         "author": None,
-        "publication_date": None,
+        "publishedDate": None,
     }
 
     # Try Open Graph tags first (most reliable)
@@ -85,7 +85,7 @@ def extract_metadata_from_html(html: str, url: str) -> dict[str, str | None]:
 
     og_published = soup.find("meta", property="article:published_time")
     if og_published and og_published.get("content"):
-        metadata["publication_date"] = _parse_date(og_published["content"])
+        metadata["publishedDate"] = _parse_date(og_published["content"])
 
     # Try Twitter Card tags
     if not metadata["title"]:
@@ -106,12 +106,12 @@ def extract_metadata_from_html(html: str, url: str) -> dict[str, str | None]:
         if author_meta and author_meta.get("content"):
             metadata["author"] = author_meta["content"]
 
-    if not metadata["publication_date"]:
-        date_meta = soup.find("meta", attrs={"name": "publication_date"}) or \
+    if not metadata["publishedDate"]:
+        date_meta = soup.find("meta", attrs={"name": "publishedDate"}) or \
                     soup.find("meta", attrs={"name": "date"}) or \
                     soup.find("meta", attrs={"property": "dc:date"})
         if date_meta and date_meta.get("content"):
-            metadata["publication_date"] = _parse_date(date_meta["content"])
+            metadata["publishedDate"] = _parse_date(date_meta["content"])
 
     # Fallback to <title> tag
     if not metadata["title"]:
@@ -201,10 +201,10 @@ def _apply_site_specific_parsing(
             if author_meta:
                 metadata["author"] = author_meta.get("content")
 
-        if not metadata["publication_date"]:
+        if not metadata["publishedDate"]:
             date_meta = soup.find("meta", {"name": "citation_date"})
             if date_meta:
-                metadata["publication_date"] = date_meta.get("content")
+                metadata["publishedDate"] = date_meta.get("content")
 
     return metadata
 
@@ -226,5 +226,5 @@ async def fetch_metadata_safe(url: str) -> dict[str, str | None]:
         return {
             "title": url,  # Use URL as fallback title
             "author": None,
-            "publication_date": None,
+            "publishedDate": None,
         }
