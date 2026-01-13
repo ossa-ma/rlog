@@ -1,5 +1,7 @@
-"""Metadata extraction service for URLs."""
+"""Metadata extraction service - matches Raycast quality."""
 
+import json
+import re
 from datetime import datetime
 from typing import Any
 
@@ -9,19 +11,63 @@ from bs4 import BeautifulSoup
 
 class MetadataFetchError(Exception):
     """Custom exception for metadata fetch errors."""
+
     pass
+
+
+def _normalize_name(name: str | None) -> str | None:
+    """Normalize author names (handle Last, First format)."""
+    if not name:
+        return None
+    # Handle "Last, First" format
+    if "," in name:
+        parts = [p.strip() for p in name.split(",")]
+        if len(parts) == 2:
+            return f"{parts[1]} {parts[0]}"
+    # Handle multiple spaces/newlines
+    return re.sub(r"\s+", " ", name).strip()
+
+
+def _parse_date(date_string: str) -> str | None:
+    """Parse various date formats into YYYY-MM-DD."""
+    if not date_string:
+        return None
+
+    formats = [
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d",
+        "%B %d, %Y",
+        "%b %d, %Y",
+        "%d %B %Y",
+        "%m/%d/%Y",
+    ]
+
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(date_string.strip(), fmt)
+            return dt.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+
+    # If all parsing fails, try to extract YYYY-MM-DD pattern
+    match = re.search(r"\d{4}-\d{2}-\d{2}", date_string)
+    if match:
+        return match.group(0)
+
+    return None
 
 
 async def fetch_metadata(url: str, timeout: int = 10) -> dict[str, str | None]:
     """
-    Fetch metadata (title, author, date) from URL.
+    Fetch metadata from URL (matches Raycast extraction quality).
 
     Args:
         url: URL to fetch metadata from
         timeout: Request timeout in seconds
 
     Returns:
-        Dictionary with title, author, publishedDate (None if not found)
+        Dictionary with title, author, publishedDate (YYYY-MM-DD format)
 
     Raises:
         MetadataFetchError: If fetch fails
@@ -32,199 +78,255 @@ async def fetch_metadata(url: str, timeout: int = 10) -> dict[str, str | None]:
                 url,
                 timeout=aiohttp.ClientTimeout(total=timeout),
                 headers={
-                    "User-Agent": "Mozilla/5.0 (compatible; rlog/1.0; +https://github.com/ossama/rlog)"
-                }
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+                },
             ) as response:
                 if response.status != 200:
-                    raise MetadataFetchError(f"HTTP {response.status} when fetching {url}")
+                    raise MetadataFetchError(f"HTTP {response.status}")
+
+                content_type = response.headers.get("content-type", "")
+
+                # Handle PDF
+                if "application/pdf" in content_type:
+                    filename = url.split("/")[-1].replace(".pdf", "")
+                    return {"title": filename, "author": None, "publishedDate": None}
+
+                # Only handle HTML
+                if "text/html" not in content_type:
+                    return {"title": url, "author": None, "publishedDate": None}
 
                 html = await response.text()
 
     except aiohttp.ClientError as e:
-        raise MetadataFetchError(f"Failed to fetch URL: {str(e)}")
+        raise MetadataFetchError(f"Network error: {str(e)}")
     except Exception as e:
-        raise MetadataFetchError(f"Unexpected error fetching metadata: {str(e)}")
+        raise MetadataFetchError(f"Unexpected error: {str(e)}")
 
-    return extract_metadata_from_html(html, url)
+    return _extract_metadata_from_html(html, url)
 
 
-def extract_metadata_from_html(html: str, url: str) -> dict[str, str | None]:
-    """
-    Extract metadata from HTML content.
-
-    Attempts to extract from:
-    1. Open Graph tags (og:title, og:author, article:published_time)
-    2. Twitter Card tags (twitter:title, twitter:creator)
-    3. JSON-LD structured data
-    4. Standard HTML meta tags
-    5. Fallback to <title> tag
-
-    Args:
-        html: HTML content
-        url: Original URL (for context)
-
-    Returns:
-        Dictionary with title, author, publishedDate
-    """
+def _extract_metadata_from_html(html: str, url: str) -> dict[str, str | None]:
+    """Extract metadata from HTML (matches Raycast logic)."""
     soup = BeautifulSoup(html, "lxml")
 
-    metadata: dict[str, str | None] = {
-        "title": None,
-        "author": None,
-        "publishedDate": None,
+    # Try JSON-LD first (most reliable)
+    json_ld_data = None
+    for script in soup.find_all("script", {"type": "application/ld+json"}):
+        try:
+            data = json.loads(script.string or "{}")
+            if data.get("@type") in ["Article", "BlogPosting", "NewsArticle", "ScholarlyArticle"]:
+                json_ld_data = data
+                break
+        except:
+            pass
+
+    # Extract Title
+    title = _extract_title(soup, url, json_ld_data)
+
+    # Extract Author
+    author = _extract_author(soup, url, json_ld_data)
+
+    # Extract Date
+    published_date = _extract_date(soup, json_ld_data)
+
+    return {
+        "title": title or url,
+        "author": author,
+        "publishedDate": published_date,
     }
 
-    # Try Open Graph tags first (most reliable)
-    og_title = soup.find("meta", property="og:title")
+
+def _extract_title(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str | None:
+    """Extract title with Raycast-level sophistication."""
+    # 1. JSON-LD
+    if json_ld:
+        if json_ld.get("headline"):
+            return json_ld["headline"].strip()
+        if json_ld.get("name"):
+            return json_ld["name"].strip()
+
+    # 2. ArXiv special handling
+    if "arxiv.org" in url:
+        h1_title = soup.find("h1", class_="title")
+        if h1_title:
+            text = h1_title.get_text()
+            # Remove "Title:" prefix
+            return re.sub(r"^Title:\s*", "", text, flags=re.IGNORECASE).strip()
+
+    # 3. Citation title
+    citation_title = soup.find("meta", {"name": "citation_title"})
+    if citation_title and citation_title.get("content"):
+        return citation_title["content"].strip()
+
+    # 4. DC title
+    dc_title = soup.find("meta", {"name": re.compile(r"DC\.title|dc\.title", re.I)})
+    if dc_title and dc_title.get("content"):
+        return dc_title["content"].strip()
+
+    # 5. Open Graph title
+    og_title = soup.find("meta", {"property": "og:title"})
+    page_title = soup.find("title")
+    page_title_text = page_title.get_text().strip() if page_title else ""
+
     if og_title and og_title.get("content"):
-        metadata["title"] = og_title["content"]
+        og_text = og_title["content"].strip()
+        if og_text != page_title_text:
+            return og_text
 
-    og_author = soup.find("meta", property="article:author")
-    if og_author and og_author.get("content"):
-        metadata["author"] = og_author["content"]
+    # 6. Smart H1 extraction (filter out site titles)
+    h1s = soup.find_all("h1")
+    if h1s:
+        # Filter out likely site titles
+        content_h1s = [
+            h1
+            for h1 in h1s
+            if not any(
+                x in (h1.get("class", []) + [h1.get("id", "")])
+                for x in ["menu-title", "site-title", "logo"]
+            )
+        ]
 
-    og_published = soup.find("meta", property="article:published_time")
-    if og_published and og_published.get("content"):
-        metadata["publishedDate"] = _parse_date(og_published["content"])
+        if content_h1s:
+            # Prefer h1 inside main/article
+            for h1 in content_h1s:
+                if h1.find_parent(["main", "article"]):
+                    return h1.get_text().strip()
+            # Fallback to first filtered h1
+            return content_h1s[0].get_text().strip()
 
-    # Try Twitter Card tags
-    if not metadata["title"]:
-        twitter_title = soup.find("meta", attrs={"name": "twitter:title"})
-        if twitter_title and twitter_title.get("content"):
-            metadata["title"] = twitter_title["content"]
+    # 7. Page title fallback
+    if page_title_text:
+        return page_title_text
 
-    if not metadata["author"]:
-        twitter_creator = soup.find("meta", attrs={"name": "twitter:creator"})
-        if twitter_creator and twitter_creator.get("content"):
-            # Twitter creator is usually @username, clean it up
-            creator = twitter_creator["content"].strip()
-            metadata["author"] = creator.lstrip("@")
-
-    # Try standard meta tags
-    if not metadata["author"]:
-        author_meta = soup.find("meta", attrs={"name": "author"})
-        if author_meta and author_meta.get("content"):
-            metadata["author"] = author_meta["content"]
-
-    if not metadata["publishedDate"]:
-        date_meta = soup.find("meta", attrs={"name": "publishedDate"}) or \
-                    soup.find("meta", attrs={"name": "date"}) or \
-                    soup.find("meta", attrs={"property": "dc:date"})
-        if date_meta and date_meta.get("content"):
-            metadata["publishedDate"] = _parse_date(date_meta["content"])
-
-    # Fallback to <title> tag
-    if not metadata["title"]:
-        title_tag = soup.find("title")
-        if title_tag and title_tag.string:
-            metadata["title"] = title_tag.string.strip()
-
-    # Special handling for common sites
-    metadata = _apply_site_specific_parsing(soup, url, metadata)
-
-    return metadata
+    return None
 
 
-def _parse_date(date_string: str) -> str | None:
-    """
-    Parse various date formats into YYYY-MM-DD.
-
-    Args:
-        date_string: Date string in various formats
-
-    Returns:
-        Normalized date string (YYYY-MM-DD) or original if parsing fails
-    """
-    # Common formats to try
-    formats = [
-        "%Y-%m-%dT%H:%M:%S%z",  # ISO 8601 with timezone
-        "%Y-%m-%dT%H:%M:%S",     # ISO 8601 without timezone
-        "%Y-%m-%d",              # Simple YYYY-MM-DD
-        "%B %d, %Y",             # January 15, 2024
-        "%b %d, %Y",             # Jan 15, 2024
-        "%d %B %Y",              # 15 January 2024
-        "%m/%d/%Y",              # 01/15/2024
+def _extract_author(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str | None:
+    """Extract author with academic paper handling."""
+    # Check if academic paper
+    citation_authors = [
+        _normalize_name(meta.get("content"))
+        for meta in soup.find_all("meta", {"name": "citation_author"})
+        if meta.get("content")
     ]
 
-    for fmt in formats:
-        try:
-            dt = datetime.strptime(date_string.strip(), fmt)
-            return dt.strftime("%Y-%m-%d")
-        except ValueError:
-            continue
+    is_academic = (
+        len(citation_authors) > 0
+        or "arxiv.org" in url
+        or "openreview.net" in url
+        or (json_ld and json_ld.get("@type") == "ScholarlyArticle")
+    )
 
-    # If all parsing fails, return first 10 chars (might be YYYY-MM-DD anyway)
-    return date_string[:10] if len(date_string) >= 10 else None
+    # 1. JSON-LD author
+    if json_ld and json_ld.get("author"):
+        authors_data = json_ld["author"]
+        if not isinstance(authors_data, list):
+            authors_data = [authors_data]
+
+        authors = [
+            _normalize_name(a.get("name") if isinstance(a, dict) else a) for a in authors_data
+        ]
+        authors = [a for a in authors if a]
+
+        if authors:
+            if is_academic:
+                return f"{authors[0]} et al." if len(authors) > 1 else authors[0]
+            return authors[0] if len(authors) == 1 else ", ".join(authors[:4])
+
+    # 2. Citation authors (academic)
+    if citation_authors:
+        return f"{citation_authors[0]} et al." if len(citation_authors) > 1 else citation_authors[0]
+
+    # 3. DC creator
+    dc_authors = [
+        _normalize_name(meta.get("content"))
+        for meta in soup.find_all(
+            "meta", {"name": re.compile(r"DC\.(creator|author)|dc\.(creator|author)", re.I)}
+        )
+        if meta.get("content")
+    ]
+    if dc_authors:
+        return f"{dc_authors[0]} et al." if len(dc_authors) > 1 else dc_authors[0]
+
+    # 4. Standard meta tags
+    for name in ["author", "article:author", "og:author", "twitter:creator"]:
+        meta = soup.find("meta", {"name": name}) or soup.find("meta", {"property": name})
+        if meta and meta.get("content"):
+            author = _normalize_name(meta["content"])
+            if author:
+                return author.lstrip("@")  # Remove @ from Twitter handles
+
+    # 5. rel=author link
+    author_link = soup.find("a", {"rel": "author"})
+    if author_link:
+        return _normalize_name(author_link.get_text())
+
+    # 6. Class-based
+    for class_name in ["author", "byline"]:
+        elem = soup.find(class_=class_name)
+        if elem:
+            return _normalize_name(elem.get_text())
+
+    return None
 
 
-def _apply_site_specific_parsing(
-    soup: BeautifulSoup,
-    url: str,
-    metadata: dict[str, str | None]
-) -> dict[str, str | None]:
-    """
-    Apply site-specific parsing rules for better metadata extraction.
+def _extract_date(soup: BeautifulSoup, json_ld: dict | None) -> str | None:
+    """Extract publication date in YYYY-MM-DD format."""
+    # 1. JSON-LD
+    if json_ld:
+        for key in ["datePublished", "dateCreated"]:
+            if json_ld.get(key):
+                return _parse_date(json_ld[key])
 
-    Args:
-        soup: BeautifulSoup object
-        url: Original URL
-        metadata: Current metadata dictionary
+    # 2. Meta tags (in priority order)
+    meta_names = [
+        "citation_publication_date",
+        "citation_date",
+        "DC.date",
+        "dc.date",
+        "DCTERMS.issued",
+        "article:published_time",
+        "date",
+        "og:published_time",
+    ]
 
-    Returns:
-        Updated metadata dictionary
-    """
-    # Medium articles
-    if "medium.com" in url or "towardsdatascience.com" in url:
-        if not metadata["author"]:
-            author_link = soup.find("a", {"rel": "author"})
-            if author_link:
-                metadata["author"] = author_link.get_text(strip=True)
+    for name in meta_names:
+        meta = soup.find("meta", {"name": name}) or soup.find("meta", {"property": name})
+        if meta and meta.get("content"):
+            date = _parse_date(meta["content"])
+            if date:
+                return date
 
-    # Dev.to articles
-    if "dev.to" in url:
-        if not metadata["author"]:
-            author_meta = soup.find("meta", {"name": "author"})
-            if author_meta:
-                metadata["author"] = author_meta.get("content")
+    # 3. <time> element
+    time_elem = soup.find("time", {"datetime": True})
+    if time_elem:
+        return _parse_date(time_elem["datetime"])
 
-    # Substack
-    if "substack.com" in url:
-        if not metadata["author"]:
-            author_elem = soup.find("a", {"class": "frontend-pencraft-Text-module__decoration-hover-underline--BEYAn"})
-            if author_elem:
-                metadata["author"] = author_elem.get_text(strip=True)
+    time_elem = soup.find("time")
+    if time_elem and time_elem.get("datetime"):
+        return _parse_date(time_elem["datetime"])
 
-    # ArXiv papers
-    if "arxiv.org" in url:
-        if not metadata["author"]:
-            author_meta = soup.find("meta", {"name": "citation_author"})
-            if author_meta:
-                metadata["author"] = author_meta.get("content")
+    # 4. Text heuristic "Published: [Date]"
+    body_text = soup.get_text()
+    match = re.search(r"Published:\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})", body_text)
+    if match:
+        return _parse_date(match.group(1))
 
-        if not metadata["publishedDate"]:
-            date_meta = soup.find("meta", {"name": "citation_date"})
-            if date_meta:
-                metadata["publishedDate"] = date_meta.get("content")
-
-    return metadata
+    return None
 
 
 async def fetch_metadata_safe(url: str) -> dict[str, str | None]:
     """
-    Safely fetch metadata with fallback to basic info on error.
-
-    Args:
-        url: URL to fetch metadata from
+    Safely fetch metadata with fallback.
 
     Returns:
-        Metadata dictionary (never raises, returns minimal info on error)
+        Metadata dictionary (never raises)
     """
     try:
         return await fetch_metadata(url)
     except Exception:
-        # On any error, return minimal metadata
         return {
-            "title": url,  # Use URL as fallback title
+            "title": url,
             "author": None,
             "publishedDate": None,
         }
