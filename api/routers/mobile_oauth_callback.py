@@ -1,37 +1,38 @@
-"""Mobile OAuth callback handler - redirects to app with JWT token."""
+"""Mobile OAuth callback handler - redirects to app with JWT token.
 
+Uses RedirectResponse for ASWebAuthenticationSession compatibility.
+ASWebAuthenticationSession (iOS 12+) natively handles redirects to custom URL schemes.
+"""
+
+import logging
 from datetime import timedelta
 from fastapi import APIRouter, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 import urllib.parse
 
 from config import settings
 from middleware.auth import create_access_token
 from services import github
 
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.get("/mobile-callback", response_class=HTMLResponse)
+@router.get("/mobile-callback")
 async def mobile_callback(
     code: str = Query(..., description="OAuth authorization code from GitHub"),
-):
+) -> RedirectResponse:
     """
     Mobile OAuth callback - redirects to app with JWT token.
 
-    This endpoint handles OAuth for mobile apps:
-    1. Receives code from GitHub
-    2. Exchanges for access token
-    3. Creates JWT
-    4. Returns HTML with JavaScript to trigger deep link
-
     Flow:
-    - GitHub redirects here after user authorizes
-    - We exchange code for GitHub token
-    - We create our own JWT
-    - We return HTML that triggers rlog://oauth/callback?token=...
-    - iOS app receives the deep link and extracts token + user info
+    1. GitHub redirects here after user authorizes
+    2. Exchange code for GitHub access token
+    3. Create JWT with user info
+    4. Redirect to rlog://oauth/callback?token=...
+    5. ASWebAuthenticationSession on iOS catches the redirect
     """
     try:
         # Exchange code for GitHub access token
@@ -58,104 +59,34 @@ async def mobile_callback(
             data=token_payload, expires_delta=timedelta(minutes=settings.jwt_expire_minutes)
         )
 
-        # Build deep link URL
+        # Build deep link URL and redirect
+        # Note: GitHub returns None for email/avatar if not set, so we use 'or' to ensure strings
+        email = user_data.get("email") or ""
+        avatar_url = user_data.get("avatar_url") or ""
+
         deep_link = (
             f"rlog://oauth/callback"
             f"?token={urllib.parse.quote(access_token)}"
             f"&user_id={user_data['id']}"
             f"&username={urllib.parse.quote(user_data['login'])}"
-            f"&email={urllib.parse.quote(user_data.get('email', ''))}"
-            f"&avatar_url={urllib.parse.quote(user_data.get('avatar_url', ''))}"
+            f"&email={urllib.parse.quote(email)}"
+            f"&avatar_url={urllib.parse.quote(avatar_url)}"
         )
 
-        # Return HTML with JavaScript to trigger deep link
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Redirecting...</title>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {{
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    min-height: 100vh;
-                    margin: 0;
-                    background: #f5f5f7;
-                }}
-                .container {{
-                    text-align: center;
-                    padding: 2rem;
-                }}
-                h1 {{
-                    color: #1d1d1f;
-                    margin-bottom: 1rem;
-                }}
-                p {{
-                    color: #86868b;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>✓ Login Successful</h1>
-                <p>Returning to rlog...</p>
-            </div>
-            <script>
-                // Trigger deep link immediately
-                window.location.href = "{deep_link}";
-            </script>
-        </body>
-        </html>
-        """
-
-        return HTMLResponse(content=html_content)
+        return RedirectResponse(url=deep_link, status_code=302)
 
     except github.GitHubAPIError as e:
-        # Return HTML with error deep link
+        logger.error(f"GitHub API Error: {e.message}")
         error_msg = urllib.parse.quote(f"GitHub OAuth failed: {e.message}")
-        error_link = f"rlog://oauth/callback?error={error_msg}"
-
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Authentication Error</title>
-            <meta charset="utf-8">
-        </head>
-        <body>
-            <h1>Authentication Failed</h1>
-            <p>{e.message}</p>
-            <script>
-                window.location.href = "{error_link}";
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        return RedirectResponse(
+            url=f"rlog://oauth/callback?error={error_msg}",
+            status_code=302,
+        )
 
     except Exception as e:
-        # Return HTML with generic error
-        error_msg = urllib.parse.quote("Authentication failed")
-        error_link = f"rlog://oauth/callback?error={error_msg}"
-
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Authentication Error</title>
-            <meta charset="utf-8">
-        </head>
-        <body>
-            <h1>Authentication Failed</h1>
-            <p>An error occurred during authentication.</p>
-            <script>
-                window.location.href = "{error_link}";
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
+        logger.exception(f"Unexpected error during OAuth: {e}")
+        error_msg = urllib.parse.quote(f"Authentication failed: {str(e)}")
+        return RedirectResponse(
+            url=f"rlog://oauth/callback?error={error_msg}",
+            status_code=302,
+        )
