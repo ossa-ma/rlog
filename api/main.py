@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import settings
-from routers import auth, reading, health
+from routers import auth, reading, health, mobile_oauth_callback
 
 
 @asynccontextmanager
@@ -69,6 +69,7 @@ async def global_exception_handler(request, exc: Exception) -> JSONResponse:
 # Include routers
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(mobile_oauth_callback.router)
 app.include_router(reading.router)
 
 
