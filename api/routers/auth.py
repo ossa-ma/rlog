@@ -32,19 +32,28 @@ class AuthURLResponse(BaseModel):
 
 
 @router.get("/url", response_model=AuthURLResponse)
-async def get_auth_url() -> AuthURLResponse:
+async def get_auth_url(
+    redirect_uri: str | None = Query(None, description="Custom redirect URI (for mobile apps)")
+) -> AuthURLResponse:
     """
     Get GitHub OAuth authorization URL.
 
     Frontend/mobile app redirects user to this URL to initiate OAuth flow.
 
+    Args:
+        redirect_uri: Optional custom redirect URI (e.g., 'rlog://oauth/callback' for iOS)
+                     Defaults to web callback URL from settings
+
     Returns:
         GitHub OAuth URL with client_id and redirect_uri
     """
+    # Use custom redirect URI if provided (for mobile), otherwise use default web URI
+    final_redirect_uri = redirect_uri or settings.github_redirect_uri
+
     auth_url = (
         f"https://github.com/login/oauth/authorize"
         f"?client_id={settings.github_client_id}"
-        f"&redirect_uri={settings.github_redirect_uri}"
+        f"&redirect_uri={final_redirect_uri}"
         f"&scope=repo,user:email"
     )
 
