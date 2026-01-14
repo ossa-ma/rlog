@@ -117,15 +117,17 @@ async def get_reading_history(
     repo_owner: str,
     repo_name: str,
     branch: str = "main",
+    file_path: str = "data/reading.json",
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """
-    Fetch user's reading history from their GitHub repository.
+    Fetch user's reading history or list from their GitHub repository.
 
     Args:
         repo_owner: Repository owner username
         repo_name: Repository name
         branch: Branch name (default: main)
+        file_path: Path to JSON file (default: data/reading.json)
         current_user: Authenticated user (from JWT)
 
     Returns:
@@ -138,7 +140,7 @@ async def get_reading_history(
         file_data = await github.get_file_from_repo(
             owner=repo_owner,
             repo=repo_name,
-            path="data/reading.json",
+            path=file_path,
             branch=branch,
             access_token=current_user.access_token,
         )
