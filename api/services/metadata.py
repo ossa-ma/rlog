@@ -1,9 +1,6 @@
-"""Metadata extraction service - matches Raycast quality."""
-
 import json
 import re
 from datetime import datetime
-from typing import Any
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -114,10 +111,15 @@ def _extract_metadata_from_html(html: str, url: str) -> dict[str, str | None]:
     for script in soup.find_all("script", {"type": "application/ld+json"}):
         try:
             data = json.loads(script.string or "{}")
-            if data.get("@type") in ["Article", "BlogPosting", "NewsArticle", "ScholarlyArticle"]:
+            if isinstance(data, dict) and data.get("@type") in [
+                "Article",
+                "BlogPosting",
+                "NewsArticle",
+                "ScholarlyArticle",
+            ]:
                 json_ld_data = data
                 break
-        except:
+        except (json.JSONDecodeError, AttributeError):
             pass
 
     # Extract Title
@@ -177,14 +179,17 @@ def _extract_title(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str |
     h1s = soup.find_all("h1")
     if h1s:
         # Filter out likely site titles
-        content_h1s = [
-            h1
-            for h1 in h1s
-            if not any(
-                x in (h1.get("class", []) + [h1.get("id", "")])
-                for x in ["menu-title", "site-title", "logo"]
-            )
-        ]
+        content_h1s = []
+        for h1 in h1s:
+            h1_classes = h1.get("class", [])
+            if not isinstance(h1_classes, list):
+                h1_classes = [str(h1_classes)]
+
+            h1_id = str(h1.get("id", ""))
+
+            attributes = h1_classes + [h1_id]
+            if not any(x in attributes for x in ["menu-title", "site-title", "logo"]):
+                content_h1s.append(h1)
 
         if content_h1s:
             # Prefer h1 inside main/article
