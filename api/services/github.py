@@ -209,11 +209,11 @@ async def update_reading_log(
     new_entry: dict[str, Any],
     access_token: str,
     commit_message: str | None = None,
+    max_retries: int = 3,
 ) -> dict[str, Any]:
     """
     Update reading log by adding a new entry and committing to GitHub.
-
-    This is the main function browser extensions/mobile apps will call.
+    Handles SHA conflicts by refetching and retrying.
 
     Args:
         owner: Repository owner username
@@ -223,48 +223,55 @@ async def update_reading_log(
         new_entry: New reading entry to add
         access_token: GitHub access token
         commit_message: Optional custom commit message
+        max_retries: Max retries on SHA conflict (default 3)
 
     Returns:
         Commit response from GitHub
 
     Raises:
-        GitHubAPIError: If update fails
+        GitHubAPIError: If update fails after retries
     """
-    # Fetch current file
-    file_data = await get_file_from_repo(owner, repo, path, branch, access_token)
-
-    # Parse existing content or create new flat list (Raycast format)
-    if file_data["content"]:
-        content_decoded = base64.b64decode(file_data["content"]).decode("utf-8")
-        reading_log = json.loads(content_decoded)
-
-        # Convert old dict format to flat list if needed
-        if isinstance(reading_log, dict) and "entries" in reading_log:
-            reading_log = reading_log["entries"]
-        elif not isinstance(reading_log, list):
-            reading_log = []
-    else:
-        reading_log = []
-
-    # Add new entry at the beginning (most recent first)
-    reading_log.insert(0, new_entry)
-
-    # Generate commit message
     if not commit_message:
         entry_title = new_entry.get("title", "article")
         timestamp = datetime.now().strftime("%Y-%m-%d")
         commit_message = f"Add reading entry: {entry_title} ({timestamp})"
 
-    # Commit updated file (as flat list)
-    new_content = json.dumps(reading_log, indent=2, ensure_ascii=False)
+    for attempt in range(max_retries):
+        file_data = await get_file_from_repo(owner, repo, path, branch, access_token)
 
-    return await commit_file_to_repo(
-        owner=owner,
-        repo=repo,
-        path=path,
-        content=new_content,
-        message=commit_message,
-        branch=branch,
-        access_token=access_token,
-        sha=file_data["sha"],
-    )
+        if file_data["content"]:
+            content_decoded = base64.b64decode(file_data["content"]).decode("utf-8")
+            reading_log = json.loads(content_decoded)
+
+            if isinstance(reading_log, dict) and "entries" in reading_log:
+                reading_log = reading_log["entries"]
+            elif not isinstance(reading_log, list):
+                reading_log = []
+        else:
+            reading_log = []
+
+        # Check for duplicate URL before adding
+        new_url = new_entry.get("url")
+        if not any(entry.get("url") == new_url for entry in reading_log):
+            reading_log.insert(0, new_entry)
+
+        new_content = json.dumps(reading_log, indent=2, ensure_ascii=False)
+
+        try:
+            return await commit_file_to_repo(
+                owner=owner,
+                repo=repo,
+                path=path,
+                content=new_content,
+                message=commit_message,
+                branch=branch,
+                access_token=access_token,
+                sha=file_data["sha"],
+            )
+        except GitHubAPIError as e:
+            if e.status_code == 409 and attempt < max_retries - 1:
+                print(f"SHA conflict on attempt {attempt + 1}, retrying...")
+                continue
+            raise
+
+    raise GitHubAPIError("Failed to update reading log after max retries", status_code=409)
