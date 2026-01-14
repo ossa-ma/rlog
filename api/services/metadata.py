@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import datetime
+from typing import Any
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -181,7 +182,7 @@ def _extract_title(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str |
         # Filter out likely site titles
         content_h1s = []
         for h1 in h1s:
-            h1_classes = h1.get("class", [])
+            h1_classes = h1.get("class", None)
             if not isinstance(h1_classes, list):
                 h1_classes = [str(h1_classes)]
 
@@ -206,13 +207,21 @@ def _extract_title(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str |
     return None
 
 
+def _get_str_attr(tag: Any, attr: str) -> str | None:
+    """Safely get string attribute from BeautifulSoup tag."""
+    val = tag.get(attr)
+    if isinstance(val, list):
+        return " ".join(str(v) for v in val)
+    return str(val) if val is not None else None
+
+
 def _extract_author(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str | None:
     """Extract author with academic paper handling."""
     # Check if academic paper
     citation_authors = [
-        _normalize_name(meta.get("content"))
+        _normalize_name(_get_str_attr(meta, "content"))
         for meta in soup.find_all("meta", {"name": "citation_author"})
-        if meta.get("content")
+        if _get_str_attr(meta, "content")
     ]
 
     is_academic = (
@@ -244,11 +253,11 @@ def _extract_author(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str 
 
     # 3. DC creator
     dc_authors = [
-        _normalize_name(meta.get("content"))
+        _normalize_name(_get_str_attr(meta, "content"))
         for meta in soup.find_all(
             "meta", {"name": re.compile(r"DC\.(creator|author)|dc\.(creator|author)", re.I)}
         )
-        if meta.get("content")
+        if _get_str_attr(meta, "content")
     ]
     if dc_authors:
         return f"{dc_authors[0]} et al." if len(dc_authors) > 1 else dc_authors[0]
@@ -256,8 +265,9 @@ def _extract_author(soup: BeautifulSoup, url: str, json_ld: dict | None) -> str 
     # 4. Standard meta tags
     for name in ["author", "article:author", "og:author", "twitter:creator"]:
         meta = soup.find("meta", {"name": name}) or soup.find("meta", {"property": name})
-        if meta and meta.get("content"):
-            author = _normalize_name(meta["content"])
+        content = _get_str_attr(meta, "content") if meta else None
+        if content:
+            author = _normalize_name(content)
             if author:
                 return author.lstrip("@")  # Remove @ from Twitter handles
 
@@ -297,8 +307,9 @@ def _extract_date(soup: BeautifulSoup, json_ld: dict | None) -> str | None:
 
     for name in meta_names:
         meta = soup.find("meta", {"name": name}) or soup.find("meta", {"property": name})
-        if meta and meta.get("content"):
-            date = _parse_date(meta["content"])
+        content = _get_str_attr(meta, "content") if meta else None
+        if content:
+            date = _parse_date(content)
             if date:
                 return date
 
