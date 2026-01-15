@@ -275,3 +275,87 @@ async def update_reading_log(
             raise
 
     raise GitHubAPIError("Failed to update reading log after max retries", status_code=409)
+
+
+async def delete_reading_entry(
+    owner: str,
+    repo: str,
+    path: str,
+    branch: str,
+    entry_url: str,
+    access_token: str,
+    commit_message: str | None = None,
+    max_retries: int = 3,
+) -> dict[str, Any]:
+    """
+    Delete a reading entry by URL.
+    Handles SHA conflicts by refetching and retrying.
+    """
+    if not commit_message:
+        timestamp = datetime.now().strftime("%Y-%m-%d")
+        commit_message = f"Delete reading entry: {entry_url} ({timestamp})"
+
+    for attempt in range(max_retries):
+        file_data = await get_file_from_repo(owner, repo, path, branch, access_token)
+
+        if not file_data["content"]:
+            # File empty or missing, nothing to delete
+            return {"message": "File not found or empty", "sha": None}
+
+        content_decoded = base64.b64decode(file_data["content"]).decode("utf-8")
+        reading_log = json.loads(content_decoded)
+
+        entries = []
+        is_dict_format = False
+
+        if isinstance(reading_log, dict) and "entries" in reading_log:
+            entries = reading_log["entries"]
+            is_dict_format = True
+        elif isinstance(reading_log, list):
+            entries = reading_log
+            is_dict_format = False
+        else:
+            # Unknown format, nothing to delete from
+            return {"message": "Unknown format", "content": None}
+
+        # Filter out the entry
+        original_count = len(entries)
+        # Normalize URLs basic stripping for comparison
+        target_url = str(entry_url).rstrip("/")
+        new_entries = [e for e in entries if str(e.get("url", "")).rstrip("/") != target_url]
+
+        if len(new_entries) == original_count:
+            # Nothing deleted, treat as success (idempotent)
+            return {"message": "Entry not found", "sha": file_data["sha"]}
+
+        # Reconstruct
+        if is_dict_format:
+            # reading_log is a dict (likely cast to dict above? No, reading_log is Any/dict from json.loads)
+            # We must be careful not to mutate 'reading_log' in a way that breaks type if we didn't cast.
+            # reading_log IS a dict here.
+            reading_log = dict(reading_log)  # shallow copy safe
+            reading_log["entries"] = new_entries
+            new_content_obj = reading_log
+        else:
+            new_content_obj = new_entries
+
+        new_content = json.dumps(new_content_obj, indent=2, ensure_ascii=False)
+
+        try:
+            return await commit_file_to_repo(
+                owner=owner,
+                repo=repo,
+                path=path,
+                content=new_content,
+                message=commit_message,
+                branch=branch,
+                access_token=access_token,
+                sha=file_data["sha"],
+            )
+        except GitHubAPIError as e:
+            if e.status_code == 409 and attempt < max_retries - 1:
+                # print(f"SHA conflict on attempt {attempt + 1}, retrying...")
+                continue
+            raise
+
+    raise GitHubAPIError("Failed to delete entry after max retries", status_code=409)

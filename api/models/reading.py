@@ -84,3 +84,11 @@ class ReadingEntryResponse(BaseModel):
             }
         }
     )
+
+
+class DeleteEntryData(BaseModel):
+    """Data for identifying entry to delete."""
+
+    url: HttpUrl = Field(..., description="URL of the entry to delete")
+
+    model_config = ConfigDict(json_schema_extra={"example": {"url": "https://example.com/article"}})

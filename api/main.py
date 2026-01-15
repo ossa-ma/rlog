@@ -15,19 +15,29 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+import uuid
+import logging
+
 from config import settings
 from routers import auth, reading, health, mobile_oauth_callback
+from utils.logging_config import setup_logging, request_id
+
+# Setup structured logging
+setup_logging()
+log = logging.getLogger("rlog.main")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
-    print(f"rlog API starting in {settings.environment} mode")
-    print(f"CORS origins: {settings.cors_origins_list}")
+    log.info(f"rlog API starting in {settings.environment} mode")
+    log.info(f"CORS origins: {settings.cors_origins_list}")
 
     yield
 
-    print("rlog API shutting down")
+    log.info("rlog API shutting down")
 
 
 # Create FastAPI application
@@ -40,6 +50,21 @@ app = FastAPI(
     redoc_url="/redoc" if not settings.is_production else None,
 )
 
+
+# Request ID Middleware
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id_val = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        token = request_id.set(request_id_val)
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = request_id_val
+            return response
+        finally:
+            request_id.reset(token)
+
+
+app.add_middleware(RequestIDMiddleware)
 
 # CORS middleware
 app.add_middleware(
@@ -55,7 +80,7 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc: Exception) -> JSONResponse:
     """Global exception handler for unhandled errors."""
-    print(f"❌ Unhandled error: {exc}")
+    log.error(f"Unhandled error: {exc}", exc_info=True)
 
     return JSONResponse(
         status_code=500,
