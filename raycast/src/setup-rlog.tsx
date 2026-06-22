@@ -9,6 +9,7 @@ import {
 import fs from "fs";
 import path from "path";
 import { useState } from "react";
+import { requireBlogPath } from "./utils";
 
 interface Preferences {
   blogPath: string;
@@ -123,7 +124,7 @@ export default function Command() {
     });
 
     try {
-      const blogPath = preferences.blogPath;
+      const blogPath = requireBlogPath(preferences.blogPath);
 
       // 1. Create Data File
       const dataDir = path.join(blogPath, path.dirname(preferences.dataPath));

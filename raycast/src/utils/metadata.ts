@@ -119,7 +119,6 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
         $('meta[name="DC.title"]').attr("content") ||
         $('meta[name="dc.title"]').attr("content");
 
-
       // Improved H1 extraction:
       // 1. Select all h1s
       // 2. Filter out common site-title classes
@@ -191,21 +190,27 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
       .get()
       .filter(Boolean);
 
-    const isAcademicPaper = citationAuthors.length > 0 ||
-                            url.includes("arxiv.org") ||
-                            url.includes("openreview.net") ||
-                            jsonLdData?.["@type"] === "ScholarlyArticle";
+    const isAcademicPaper =
+      citationAuthors.length > 0 ||
+      url.includes("arxiv.org") ||
+      url.includes("openreview.net") ||
+      jsonLdData?.["@type"] === "ScholarlyArticle";
 
     let author: string | null = null;
     if (jsonLdData && jsonLdData.author) {
       if (Array.isArray(jsonLdData.author)) {
-        const authors = jsonLdData.author.map((a: any) => normalizeName(a.name || a)).filter(Boolean);
+        const authors = jsonLdData.author
+          .map((a: { name?: string } | string) =>
+            normalizeName(typeof a === "string" ? a : a.name),
+          )
+          .filter(Boolean);
         if (isAcademicPaper) {
           author = authors.length > 1 ? `${authors[0]} et al.` : authors[0];
         } else {
-          author = authors.length > 4
-            ? `${authors.slice(0, 4).join(", ")}, et al.`
-            : authors.join(", ");
+          author =
+            authors.length > 4
+              ? `${authors.slice(0, 4).join(", ")}, et al.`
+              : authors.join(", ");
         }
       } else if (typeof jsonLdData.author === "object") {
         author = normalizeName(jsonLdData.author.name);
@@ -224,14 +229,13 @@ export async function fetchMetadata(url: string): Promise<Metadata> {
 
       if (citationAuthors.length > 0) {
         // Academic paper: first author + et al.
-        author = citationAuthors.length > 1
-          ? `${citationAuthors[0]} et al.`
-          : citationAuthors[0];
+        author =
+          citationAuthors.length > 1
+            ? `${citationAuthors[0]} et al.`
+            : citationAuthors[0];
       } else if (dcAuthors.length > 0) {
         // DC authors: treat as academic if multiple
-        author = dcAuthors.length > 1
-          ? `${dcAuthors[0]} et al.`
-          : dcAuthors[0];
+        author = dcAuthors.length > 1 ? `${dcAuthors[0]} et al.` : dcAuthors[0];
       } else {
         // Blog/article fallback
         author =

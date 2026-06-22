@@ -2,7 +2,7 @@ import { Action, ActionPanel, List, getPreferenceValues } from "@raycast/api";
 import { showFailureToast } from "@raycast/utils";
 import path from "path";
 import { useState, useEffect } from "react";
-import { ReadingEntry, loadJson } from "./utils";
+import { ReadingEntry, loadJson, requireBlogPath } from "./utils";
 
 interface Preferences {
   blogPath: string;
@@ -17,6 +17,7 @@ export default function Command() {
   useEffect(() => {
     async function loadReadings() {
       try {
+        requireBlogPath(preferences.blogPath);
         const dataPath = path.join(preferences.blogPath, preferences.dataPath);
         const data = loadJson<ReadingEntry>(dataPath);
 
@@ -43,7 +44,9 @@ export default function Command() {
         if (entry.rating) {
           accessories.push({ text: String(entry.rating) });
         }
-        accessories.push({ text: new Date(entry.addedDate).toLocaleDateString() });
+        accessories.push({
+          text: new Date(entry.addedDate).toLocaleDateString(),
+        });
 
         return (
           <List.Item

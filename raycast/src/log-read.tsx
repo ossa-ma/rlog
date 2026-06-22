@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Action,
   ActionPanel,
@@ -11,7 +11,8 @@ import { useForm, showFailureToast } from "@raycast/utils";
 import fs from "fs";
 import path from "path";
 import simpleGit from "simple-git";
-import { getActiveUrl, fetchMetadata } from "./utils";
+import { fetchMetadata, requireBlogPath } from "./utils";
+import { ReadingFields, useActiveUrlAutofill, validateUrl } from "./components";
 
 interface Preferences {
   blogPath: string;
@@ -57,6 +58,8 @@ export default function Command() {
       });
 
       try {
+        requireBlogPath(preferences.blogPath);
+
         // 1. Fetch Metadata
         const { title, author, publishedDate } = await fetchMetadata(
           values.url,
@@ -107,7 +110,10 @@ export default function Command() {
         );
         if (fs.existsSync(readingListPath)) {
           try {
-            const readingListContent = fs.readFileSync(readingListPath, "utf-8");
+            const readingListContent = fs.readFileSync(
+              readingListPath,
+              "utf-8",
+            );
             let readingList = JSON.parse(readingListContent);
             const originalLength = readingList.length;
             readingList = readingList.filter(
@@ -151,30 +157,10 @@ export default function Command() {
         setIsLoading(false);
       }
     },
-    validation: {
-      url: (value) => {
-        if (!value) return "The item is required";
-        try {
-          new URL(value);
-        } catch (e) {
-          return "Invalid URL";
-        }
-      },
-    },
+    validation: { url: validateUrl },
   });
 
-  // Auto-fill URL from Browser (Primary) or Clipboard (Fallback)
-  useEffect(() => {
-    async function fetchUrl() {
-      const url = await getActiveUrl();
-      if (url) {
-        console.log("Setting URL:", url);
-        setValue("url", url);
-      }
-    }
-
-    fetchUrl();
-  }, []);
+  useActiveUrlAutofill(setValue);
 
   return (
     <Form
@@ -185,27 +171,11 @@ export default function Command() {
         </ActionPanel>
       }
     >
-      <Form.TextField
-        title="URL"
-        placeholder="https://example.com/article"
-        {...itemProps.url}
+      <ReadingFields
+        url={itemProps.url}
+        thoughts={itemProps.thoughts}
+        rating={itemProps.rating}
       />
-      <Form.TextArea
-        title="Thoughts"
-        placeholder="Optional thoughts..."
-        {...itemProps.thoughts}
-      />
-      <Form.Dropdown
-        title="Rating"
-        {...itemProps.rating}
-      >
-        <Form.Dropdown.Item value="" title="No rating" />
-        <Form.Dropdown.Item value="1" title="1" />
-        <Form.Dropdown.Item value="2" title="2" />
-        <Form.Dropdown.Item value="3" title="3" />
-        <Form.Dropdown.Item value="4" title="4" />
-        <Form.Dropdown.Item value="5" title="5" />
-      </Form.Dropdown>
       {/* Can't default to past dates e.g. last week, last month, user must do this manually */}
       <Form.DatePicker title="Date Added" {...itemProps.date} />
       {/* <Form.DatePicker
